@@ -1,5 +1,5 @@
 ### This is
-A work-in-progress repo, intended for prototyping engine and graphics features on Windows only. A spiritual successor of another project I worked on (https://github.com/norrischiu/DEngine).
+A work-in-progress repo, intended for prototyping engine and graphics features on Windows only. A spiritual successor of another project I worked on (https://github.com/norrischiu/DEngine). So some code are moved from there and revamp later.
 
 ### To Run
 Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2017 is required. 
