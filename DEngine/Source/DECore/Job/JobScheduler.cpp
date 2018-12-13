@@ -20,7 +20,7 @@ void JobScheduler::StartUp(uint8_t numThreads)
 	m_Workers.resize(m_iNumWorker);
 	for (uint8_t cnt = 0; cnt < m_iNumWorker; ++cnt)
 	{		
-		m_Workers[cnt] = new JobWorker(this);
+		m_Workers[cnt] = std::make_unique<JobWorker>(this);
 	}
 
 	for (uint8_t cnt = 1; cnt < m_iNumWorker; ++cnt) // index 0 is main thread
@@ -36,6 +36,8 @@ void JobScheduler::ShutDown()
 	{
 		m_Workers[cnt]->End();
 	}
+	
+	delete this;
 }
 
 Job* JobScheduler::Run(Vector<Job::Desc>& jobDescs)
@@ -56,7 +58,7 @@ Job* JobScheduler::Run(Vector<Job::Desc>& jobDescs)
 
 Job* JobScheduler::Get()
 {
-	uint8_t index = rand() % (m_iNumWorker - 1);
+	uint8_t index = rand() % (m_iNumWorker == 1 ? 1 : m_iNumWorker - 1);
 	return m_Workers[index]->Steal();
 }
 

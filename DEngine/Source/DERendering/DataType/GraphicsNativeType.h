@@ -16,7 +16,9 @@ public:
 	~GraphicsInfrastructure()
 	{
 		ptr->Release();
+#if DEBUG
 		m_pDebugController->Release();
+#endif
 	}
 
 	void Init()
@@ -36,7 +38,9 @@ public:
 	IDXGIFactory4* ptr;
 
 private:
+#if DEBUG
 	ID3D12Debug* m_pDebugController;
+#endif
 };
 
 class GraphicsDevice final

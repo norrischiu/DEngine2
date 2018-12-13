@@ -46,10 +46,10 @@ public:
 	}
 
 private:
-	static JobScheduler*	m_pInstance;
+	static JobScheduler*				m_pInstance;
 
-	uint32_t				m_iNumWorker;
-	Vector<JobWorker*>		m_Workers;
+	uint32_t							m_iNumWorker;
+	Vector<std::unique_ptr<JobWorker>>	m_Workers;
 };
 
 }
