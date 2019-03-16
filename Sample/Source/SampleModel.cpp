@@ -19,9 +19,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 
 	Vector<char> vs;
 	Vector<char> ps;
-	Job* vsCounter = FileLoader::LoadAsync("../Assets/Shaders/Position.vs.cso", vs);
+	Job* vsCounter = FileLoader::LoadAsync("../Assets/Shaders/Pbr.vs.cso", vs);
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job* psCounter = FileLoader::LoadAsync("../Assets/Shaders/Red.ps.cso", ps);
+	Job* psCounter = FileLoader::LoadAsync("../Assets/Shaders/Pbr.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
 
 	struct PerLightCBuffer
