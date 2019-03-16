@@ -25,7 +25,7 @@ public:
 	*
 	*	@param capacity
 	*/
-	MyArray(size_t capacity = 1024)
+	MyArray(size_t capacity = 0)
 	{
 		m_iSize = 0;
 		m_iCapacity = capacity;

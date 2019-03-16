@@ -20,7 +20,7 @@ void JobScheduler::StartUp(uint8_t numThreads)
 	m_Workers.resize(m_iNumWorker);
 	for (uint8_t cnt = 0; cnt < m_iNumWorker; ++cnt)
 	{		
-		m_Workers[cnt] = std::make_unique<JobWorker>(this);
+		m_Workers[cnt] = new JobWorker(this);
 	}
 
 	for (uint8_t cnt = 1; cnt < m_iNumWorker; ++cnt) // index 0 is main thread

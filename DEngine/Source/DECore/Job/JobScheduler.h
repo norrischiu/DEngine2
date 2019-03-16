@@ -49,7 +49,7 @@ private:
 	static JobScheduler*				m_pInstance;
 
 	uint32_t							m_iNumWorker;
-	Vector<std::unique_ptr<JobWorker>>	m_Workers;
+	Vector<JobWorker*>					m_Workers;
 };
 
 }

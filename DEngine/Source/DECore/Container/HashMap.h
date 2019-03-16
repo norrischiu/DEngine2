@@ -1,9 +1,8 @@
-#ifndef MY_HASHMAP_H_
-#define MY_HASHMAP_H_
+#pragma once
 
 // Engine include
 #include "Memory\Handle.h"
-#include "MyArray.h"
+#include "Vector.h"
 
 // C++ include
 #include <functional>
@@ -100,9 +99,7 @@ public:
 	*	--- Parameters:
 	*	@ void
 	********************************************************************************/
-	~MyHashMap()
-	{
-	}
+	~MyHashMap() = default;
 
 	/********************************************************************************
 	*	--- Function:
@@ -335,6 +332,7 @@ private:
 	uint32_t						m_iMapSize;		// the allocated size of the whole map
 };
 
-} // namespace DE
+template<class T>
+using HashMap = MyHashMap<T>;
 
-#endif // !MY_HASHMAP_H_
+} // namespace DE

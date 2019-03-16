@@ -7,6 +7,7 @@
 
 // C++ include
 #include <iostream>
+#include <mutex>
 
 namespace DE
 {
@@ -37,10 +38,10 @@ const uint32_t MEMORY_POOL_CONFIG[][2] =	// memory pool configuration: block siz
 	{ 32768,    512 },
 	{ 65536,    256 },
 	{ 131072,   32 },
-	{ 262144,   16 },  // low res texture (256 * 256 * 4)
-	{ 524288,   8 }, 
+	{ 262144,   32 },  // low res texture (256 * 256 * 4)
+	{ 524288,   32 }, 
 	{ 1048576,  16 }, // mid res texture (512 * 512 * 4)
-	{ 4194304,  16 }, // high res texture (1024 * 1024 * 4)
+	{ 4194304,  64 }, // high res texture (1024 * 1024 * 4)
 	{ 8388608,	4 },
 	{ 16777216, 4 }  // ultra high res texture (2048 * 2048 * 4)
 };
@@ -63,8 +64,6 @@ public:
 	*	@ void
 	********************************************************************************/
 	void ConstructDefaultPool();
-
-	void Defragment(); // TODO
 
 	/********************************************************************************
 	*	--- Function:
@@ -135,9 +134,17 @@ public:
 	static DllExport MemoryManager* GetInstance()
 	{
 		if (!m_pInstance)
+		{
 			m_pInstance = reinterpret_cast<MemoryManager*>(std::malloc(sizeof(MemoryManager)));
+			m_pInstance->ConstructDefaultPool();
+		}
 		return m_pInstance;
 	};
+
+	static DllExport void* Start()
+	{
+		return m_pInstance->m_pRawHeapStart;
+	}
 
 private:
 
@@ -148,7 +155,11 @@ private:
 
 	~MemoryManager()
 	{
-		std::free(m_pInstance);
+		if (m_pInstance)
+		{
+			m_pInstance->Destruct();
+			std::free(m_pInstance);
+		}
 	}
 
 	/********************************************************************************
