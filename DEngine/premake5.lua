@@ -63,6 +63,8 @@ project "DEGame"
 	defines {"_CRT_SECURE_NO_WARNINGS"}
 	includedirs {  "Source/", "Source/DEGame/" }
 	buildoptions { "/sdl" } -- code generation for uninitialized variable
+	pchheader "DEGame/DEGame.h"
+	pchsource "Source/DEGame/DEGame.cpp"
 	links { "DECore", "DERendering" }
 
 	files 
