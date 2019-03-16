@@ -1,4 +1,5 @@
 // CameraComponent.cpp
+#include <DEGame/DEGame.h>
 #include "CameraComponent.h"
 
 // Engine include
@@ -15,11 +16,6 @@ CameraComponent::CameraComponent(const Vector3& vPos, const Vector3& vLookAt, co
 	m_mPerspectiveProj = Matrix4::PerspectiveProjection(fFov, fRatio, fZNear, fZFar);
 	m_Frustum = Frustum(fFov, fRatio, fZNear, fZFar);
 	m_ID = ComponentID;
-}
-
-void CameraComponent::SetAsRendererCamera()
-{
-	//D3D12Renderer::GetInstance()->SetCamera(this);
 }
 
 Matrix4 CameraComponent::GetViewMatrix()
