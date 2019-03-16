@@ -1,13 +1,16 @@
-### This is
-A work-in-progress repo, intended for prototyping engine and graphics features on Windows only. A spiritual successor of another project I worked on (https://github.com/norrischiu/DEngine). So some code are moved from there and revamp later.
+## This is
+Created for quick engine and graphics features protyping on Windows only. A spiritual successor of my other project DEngine (https://github.com/norrischiu/DEngine). 
 
-### To Run
+## It has
+- Multithreaded lock free job system
+- Pool memory allocator
+- Handle based container
+- SIMD maths library
+- Framegraph (WIP)
+- PBR render pipeline
+- .obj assets loader
+
+## To run
 Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2017 is required. 
 
-Make sure you have configured Win10 sdk path correctly, because the shaders are built using custom build command with dxc.exe from Visual Studio.
-
-### It Has
-- Lock-free job system
-- Framegraph (WIP)
-- Handle-based pool allocator and container
-- SIMD maths
+Make sure you have Windows 10 Dev Kit installed and dxc.exe searchable in system path.
