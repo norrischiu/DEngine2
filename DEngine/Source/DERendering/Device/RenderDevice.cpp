@@ -1,4 +1,4 @@
-// D3D12Renderer.cpp:
+// RenderDevice.cpp:
 
 // Windows
 #include <d3d12.h>
@@ -6,13 +6,14 @@
 // Engine
 #include <DERendering/DERendering.h>
 #include <DERendering/DataType/graphicsNativeType.h>
+#include <DERendering/Device/CopyCommandList.h>
 #include <DERendering/Framegraph/Framegraph.h>
-#include "D3D12Renderer.h"
+#include "RenderDevice.h"
 
 namespace DE 
 {
 
-D3D12Renderer::~D3D12Renderer()
+RenderDevice::~RenderDevice()
 {
 	m_FenceValue++;
 
@@ -25,12 +26,12 @@ D3D12Renderer::~D3D12Renderer()
 	m_Fence.CPUWaitFor(m_FenceValue);
 }
 
-bool D3D12Renderer::Init(const Desc& desc)
+bool RenderDevice::Init(const Desc& desc)
 {
 	m_GraphicsInfra.Init();
 
 	IDXGIAdapter3* adapter = nullptr;
-	int adapterIndex = 0;
+	int adapterIndex = 1;
 
 	while (m_GraphicsInfra.ptr->EnumAdapters(adapterIndex, reinterpret_cast<IDXGIAdapter**>(&adapter)) != DXGI_ERROR_NOT_FOUND)
 	{
@@ -63,10 +64,12 @@ bool D3D12Renderer::Init(const Desc& desc)
 		m_BackBuffers[i]->Init(backBuffer);
 	}
 
+	m_ppCommandLists.reserve(264);
+
 	return true;
 }
 
-void D3D12Renderer::Render(const Framegraph& framegraph)
+void RenderDevice::Render(const Framegraph& framegraph)
 {
 	const uint32_t commandListCount = static_cast<uint32_t>(framegraph.m_CommandLists.size());
 	Vector<ID3D12CommandList*> ppCommandLists(commandListCount);
@@ -83,7 +86,34 @@ void D3D12Renderer::Render(const Framegraph& framegraph)
 	m_FenceValue++;
 }
 
-std::shared_ptr<Texture> D3D12Renderer::GetBackBuffer(uint32_t index)
+void RenderDevice::Submit(const CopyCommandList* commandLists, uint32_t num)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	for (uint32_t cnt = 0; cnt < num; ++cnt)
+	{
+		HRESULT hr = commandLists[cnt].GetCommandList().ptr->Close();
+		assert(hr == S_OK);
+		m_ppCommandLists.push_back(static_cast<ID3D12CommandList*>(commandLists[cnt].GetCommandList().ptr));
+	}
+}
+
+void RenderDevice::Execute()
+{
+	m_RenderQueue.ptr->ExecuteCommandLists(m_ppCommandLists.size(), m_ppCommandLists.data());
+	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
+
+	m_ppCommandLists.clear();
+
+	m_Fence.CPUWaitFor(m_FenceValue);
+	m_FenceValue++;
+}
+
+void RenderDevice::WaitForIdle()
+{
+}
+
+std::shared_ptr<Texture> RenderDevice::GetBackBuffer(uint32_t index)
 {
 	return m_BackBuffers[index];
 }

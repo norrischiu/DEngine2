@@ -20,7 +20,7 @@ public:
 		, m_Data()
 		, m_Setup(setup)
 		, m_Execute(execute)
-		, m_pCommandList(std::unique_ptr<CommandList>(pCommandList))
+		, m_pCommandList(pCommandList)
 	{};
 	FramegraphPass(const FramegraphPass& other) = delete;
 	FramegraphPass(FramegraphPass&& other) = default;
@@ -42,7 +42,7 @@ public:
 
 protected:
 	std::string m_sName;
-	std::unique_ptr<CommandList> m_pCommandList;
+	CommandList* m_pCommandList;
 	T_DATA m_Data;
 	std::function<void(T_DATA&)> m_Setup;
 	std::function<void(T_DATA&, CommandList&)> m_Execute;

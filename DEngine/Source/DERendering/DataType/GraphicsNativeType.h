@@ -99,7 +99,11 @@ public:
 	SwapChain& operator=(const SwapChain&) = delete;
 	~SwapChain()
 	{
-		ptr->Release();
+		if (ptr)
+		{
+			ptr->Release();
+			ptr = nullptr;
+		}
 	}
 
 	void Init(const GraphicsInfrastructure& graphicsInfra, const CommandQueue& commandQueue, HWND hWnd, uint32_t width, uint32_t height, uint32_t backBufferCount)
@@ -131,8 +135,16 @@ public:
 	CommandList& operator=(const CommandList&) = delete;
 	~CommandList()
 	{
-		ptr->Release();
-		m_Allocator->Release();
+		if (ptr)
+		{
+			ptr->Release();
+			ptr = nullptr;
+		}
+		if (m_Allocator)
+		{
+			m_Allocator->Release();
+			m_Allocator = nullptr;
+		}
 	}
 
 	void Init(const GraphicsDevice& device, D3D12_COMMAND_LIST_TYPE type)
@@ -184,11 +196,42 @@ public:
 		hr = device.ptr->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&ptr));
 		assert(hr == S_OK);
 
-		m_top = ptr->GetCPUDescriptorHandleForHeapStart();
+		current = ptr->GetCPUDescriptorHandleForHeapStart();
 	}
 
 	ID3D12DescriptorHeap* ptr;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_top;
+	D3D12_CPU_DESCRIPTOR_HANDLE current;
+};
+
+class InputLayout final
+{
+public:
+	InputLayout()
+	{
+		desc.pInputElementDescs = inputElementDesc;
+	}
+	InputLayout(const InputLayout&) = delete;
+	InputLayout& operator=(const InputLayout&) = delete;
+	~InputLayout() = default;
+	
+	void Add(const char* semanticName, uint32_t semanticIndex, uint32_t inputSlot, DXGI_FORMAT format)
+	{
+		uint32_t i = desc.NumElements;
+		inputElementDesc[i].SemanticName = semanticName;
+		inputElementDesc[i].SemanticIndex = semanticIndex;
+		inputElementDesc[i].InputSlot = inputSlot;
+		inputElementDesc[i].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+		inputElementDesc[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+		inputElementDesc[i].Format = format;
+		inputElementDesc[i].InstanceDataStepRate = 0;
+
+		desc.NumElements++;
+	}
+
+	D3D12_INPUT_LAYOUT_DESC desc = {};
+	
+private:
+	D3D12_INPUT_ELEMENT_DESC inputElementDesc[16];
 };
 
 class RootSignature final

@@ -1,4 +1,4 @@
-// D3D12Renderer.h: the class for Direct3D 12 renderer
+// RenderDevice.h: the class for Direct3D 12 renderer
 #pragma once
 
 // Windows
@@ -8,14 +8,17 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
+// C++
+#include <mutex>
 
 namespace DE
 {
 
 class Framegraph;
+class CopyCommandList;
 
 /** @brief Interface to D3D12 device, queue and swapchain*/
-class D3D12Renderer
+class RenderDevice
 {
 
 public:
@@ -29,10 +32,10 @@ public:
 		uint32_t backBufferCount_;
 	};
 
-	D3D12Renderer() = default;
-	~D3D12Renderer();
-	D3D12Renderer(const D3D12Renderer&) = delete;
-	D3D12Renderer& operator=(const D3D12Renderer&) = delete;
+	RenderDevice() = default;
+	~RenderDevice();
+	RenderDevice(const RenderDevice&) = delete;
+	RenderDevice& operator=(const RenderDevice&) = delete;
 
 	/** @brief	Initialize D3D12 object, e.g. queue, swapchain, fence
 	*
@@ -41,11 +44,24 @@ public:
 	*/
 	bool Init(const Desc& desc);
 
-	/** @brief This function will execute the command lists recorded in framegraph
+	/** @brief This Execute the command lists recorded in framegraph
 	*
 	*	@param framegraph
 	*/
 	void Render(const Framegraph& framegraph);
+
+	/** @brief Submit command lists to a internal list
+	*
+	*	@param commandLists
+	*	@param num
+	*/
+	void Submit(const CopyCommandList* commandLists, uint32_t num);
+
+	/** @brief Execute the submitted command lists */
+	void Execute();
+
+	/** @brief Wait for render queue to be idle */
+	void WaitForIdle();
 
 	/** @brief This function will execute the command lists recorded in framegraph
 	*
@@ -61,6 +77,9 @@ public:
 	uint64_t					m_FenceValue;
 	SwapChain					m_SwapChain;
 	std::shared_ptr<Texture>	m_BackBuffers[2];
+
+	std::mutex					m_mutex;
+	Vector<ID3D12CommandList*>	m_ppCommandLists;
 };
 
 };
