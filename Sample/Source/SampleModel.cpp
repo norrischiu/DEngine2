@@ -14,14 +14,14 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 {
 	SceneLoader loader;
 	loader.Init(renderDevice);
-	loader.SetRootPath("../Assets/");
+	loader.SetRootPath("..\\Assets\\");
 	loader.Load("ShaderBall");
 
 	Vector<char> vs;
 	Vector<char> ps;
-	Job* vsCounter = FileLoader::LoadAsync("../Assets/Shaders/Pbr.vs.cso", vs);
+	Job* vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso", vs);
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job* psCounter = FileLoader::LoadAsync("../Assets/Shaders/Pbr.ps.cso", ps);
+	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
 
 	struct PerLightCBuffer
