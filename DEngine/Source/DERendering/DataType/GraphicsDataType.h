@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <DERendering\DataType\GraphicsResourceType.h>
+#include <DERendering\DataType\Pool.h>
 
 namespace DE
 {
@@ -48,16 +49,12 @@ public:
 	uint32_t m_MaterialID;
 };
 
-struct Meshes final
+class Meshes : public Pool<Mesh, 512>
 {
-	static Mesh m_Meshes[512];
-	//static uint32_t m_iNum;
 };
 
-struct Materials final
+struct Materials : public Pool<Material, 512>
 {
-	static Material m_Materials[512];
-	//static uint32_t m_iNum;
 };
 
 }

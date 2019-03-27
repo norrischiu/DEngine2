@@ -71,9 +71,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 		for (uint32_t i = 0; i < 6; ++i)
 		{
 			// vertex
-			std::size_t num = Meshes::m_Meshes[i].m_Vertices.size();
+			std::size_t num = Meshes::Get(i).m_Vertices.size();
 			std::size_t size = num * sizeof(float3);
-			auto& vertices = Meshes::m_Meshes[i].m_Vertices;
+			auto& vertices = Meshes::Get(i).m_Vertices;
 
 			data.position[i].Init(renderDevice.m_Device, sizeof(float3), size);
 
@@ -84,9 +84,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 			data.position[i].ptr->Unmap(0, &range);
 
 			// normal
-			num = Meshes::m_Meshes[i].m_Normals.size();
+			num = Meshes::Get(i).m_Normals.size();
 			size = num * sizeof(float3);
-			auto& normals = Meshes::m_Meshes[i].m_Normals;
+			auto& normals = Meshes::Get(i).m_Normals;
 
 			data.normal[i].Init(renderDevice.m_Device, sizeof(float3), size);
 
@@ -96,9 +96,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 			data.normal[i].ptr->Unmap(0, &range);
 
 			// tangent
-			num = Meshes::m_Meshes[i].m_Tangents.size();
+			num = Meshes::Get(i).m_Tangents.size();
 			size = num * sizeof(float3);
-			auto& tangents = Meshes::m_Meshes[i].m_Tangents;
+			auto& tangents = Meshes::Get(i).m_Tangents;
 
 			data.tangent[i].Init(renderDevice.m_Device, sizeof(float3), size);
 
@@ -108,9 +108,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 			data.tangent[i].ptr->Unmap(0, &range);
 
 			// texcoord
-			num = Meshes::m_Meshes[i].m_TexCoords.size();
+			num = Meshes::Get(i).m_TexCoords.size();
 			size = num * sizeof(float2);
-			auto& texcoords = Meshes::m_Meshes[i].m_TexCoords;
+			auto& texcoords = Meshes::Get(i).m_TexCoords;
 
 			data.texcoord[i].Init(renderDevice.m_Device, sizeof(float2), size);
 
@@ -120,9 +120,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 			data.texcoord[i].ptr->Unmap(0, &range);
 
 			// index
-			num = Meshes::m_Meshes[i].m_Indices.size();
+			num = Meshes::Get(i).m_Indices.size();
 			size = num * sizeof(uint3);
-			auto& indices = Meshes::m_Meshes[i].m_Indices;
+			auto& indices = Meshes::Get(i).m_Indices;
 
 			data.ibs[i].Init(renderDevice.m_Device, sizeof(uint3), size);
 
@@ -265,7 +265,7 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 		{
 			for (uint32_t i = 0; i < 6; ++i)
 			{
-				auto& material = Materials::m_Materials[Meshes::m_Meshes[i].m_MaterialID];
+				auto& material = Materials::Get(Meshes::Get(i).m_MaterialID);
 				for (uint32_t j = 0; j < 5; ++j)
 				{
 					if (material.m_Textures[j].ptr != nullptr)
@@ -319,7 +319,7 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 		for (uint32_t i = 0; i < 6; ++i)
 		{
 			// copy descriptor
-			uint32_t materialID = Meshes::m_Meshes[i].m_MaterialID;
+			uint32_t materialID = Meshes::Get(i).m_MaterialID;
 			data.pDevice->m_Device.ptr->CopyDescriptorsSimple(5, data.cbvSrvDescriptorHeap.current, data.srv[materialID * 5].descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			commandList.ptr->SetGraphicsRootDescriptorTable(1, descriptorTable);
@@ -328,7 +328,7 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 			commandList.ptr->IASetVertexBuffers(2, 1, &data.tangent[i].view);
 			commandList.ptr->IASetVertexBuffers(3, 1, &data.texcoord[i].view);
 			commandList.ptr->IASetIndexBuffer(&data.ibs[i].view);
-			commandList.ptr->DrawIndexedInstanced(Meshes::m_Meshes[i].m_Indices.size() * 3, 1, 0, 0, 0);
+			commandList.ptr->DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
 
 			data.cbvSrvDescriptorHeap.current.ptr += data.pDevice->m_Device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5;
 			descriptorTable.ptr += data.pDevice->m_Device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5;
