@@ -170,7 +170,7 @@ public:
 	}
 
 	// Overload * operator
-	inline SIMDMatrix4 operator*(const SIMDMatrix4& mat)
+	inline SIMDMatrix4 operator*(const SIMDMatrix4& mat) const
 	{
 		__m128 mat_rows0 = mat._rows[0];
 		__m128 mat_rows1 = mat._rows[1];
