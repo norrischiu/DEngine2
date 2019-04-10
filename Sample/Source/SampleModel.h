@@ -1,5 +1,7 @@
 #pragma once
 
+#include <DEGame/Component/Camera.h>
+
 namespace DE
 {
 class RenderDevice;
@@ -9,7 +11,12 @@ class Framegraph;
 class SampleModel
 {
 public:
-	SampleModel() = delete;
+	SampleModel() = default;
+	~SampleModel() = default;
 
-	static void Setup(DE::RenderDevice& renderer, DE::Framegraph& framegraph);
+	void Setup(DE::RenderDevice& renderer, DE::Framegraph& framegraph);
+	void Update(float dt);
+
+private:
+	DE::Camera m_Camera;
 };

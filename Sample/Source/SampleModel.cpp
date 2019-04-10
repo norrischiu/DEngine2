@@ -6,6 +6,7 @@
 #include <DECore/FileSystem/FileLoader.h>
 #include <DERendering/DERendering.h>
 #include <DEGame/Loader/SceneLoader.h>
+#include <DEGame/Component/Camera.h>
 #include "SampleModel.h"
 
 using namespace DE;
@@ -23,6 +24,8 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
 	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
+
+	m_Camera.Init(Vector3(2.0f, 2.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f);
 
 	struct PerLightCBuffer
 	{
@@ -57,7 +60,6 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 
 		ConstantBufferView vsCbv;
 		ConstantBufferView psCbv;
-		PerObjectCBuffer transforms;
 		PerLightCBuffer light;
 
 		RenderDevice* pDevice;
@@ -242,14 +244,6 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 		}
 		{
 			data.vsCbv.Init(renderDevice.m_Device, 256);
-
-			data.transforms.world = Matrix4::Identity;
-			data.transforms.wvp = Matrix4::PerspectiveProjection(PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f) * Matrix4::LookAtMatrix(Vector3(2.0f, 2.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
-			void* address = nullptr;
-			D3D12_RANGE range{ 0, sizeof(PerObjectCBuffer) };
-			data.vsCbv.buffer.ptr->Map(0, &range, &address);
-			memcpy(address, &data.transforms, sizeof(PerObjectCBuffer));
-			data.vsCbv.buffer.ptr->Unmap(0, &range);
 		}
 		{
 			data.psCbv.Init(renderDevice.m_Device, 256);
@@ -279,6 +273,15 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 		data.pDevice = &renderDevice;
 	},
 		[=](TrianglePassData& data, CommandList& commandList) {
+		PerObjectCBuffer transforms;
+		transforms.world = Matrix4::Identity;
+		transforms.wvp = m_Camera.GetPV();
+		void* address = nullptr;
+		D3D12_RANGE range{ 0, sizeof(PerObjectCBuffer) };
+		data.vsCbv.buffer.ptr->Map(0, &range, &address);
+		memcpy(address, &transforms, sizeof(PerObjectCBuffer));
+		data.vsCbv.buffer.ptr->Unmap(0, &range);
+
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -344,4 +347,9 @@ void SampleModel::Setup(RenderDevice& renderDevice, Framegraph& framegraph)
 	});
 
 	framegraph.Compile();
+}
+
+void SampleModel::Update(float dt)
+{
+	m_Camera.ParseInput(dt);
 }
