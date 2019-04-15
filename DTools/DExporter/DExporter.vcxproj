@@ -79,6 +79,8 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)..\External\Assimp\include;$(ProjectDir)..\..\DEngine\Source;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)..\External\Assimp\lib\x64;$(LibraryPath)</LibraryPath>
+    <OutDir>..\Bin\</OutDir>
+    <TargetName>$(ProjectName)$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -89,6 +91,8 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)..\External\Assimp\include;$(ProjectDir)..\..\DEngine\Source;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)..\External\Assimp\lib\x64;$(LibraryPath)</LibraryPath>
+    <OutDir>..\Bin\</OutDir>
+    <TargetName>$(ProjectName)$(Configuration)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,6 +128,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -166,6 +171,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
