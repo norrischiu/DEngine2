@@ -10,12 +10,12 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Ka ..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
-map_Kd ..\Textures\ShaderBall\Dirty_gold_01_Color.png
-map_bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-map_Ns ..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
-map_d ..\Textures\ShaderBall\Dirty_gold_01_AO.png
+map_Ka ..\..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
+map_Kd ..\..\Textures\ShaderBall\Dirty_gold_01_Color.png
+map_bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+map_Ns ..\..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
+map_d ..\..\Textures\ShaderBall\Dirty_gold_01_AO.png
 
 newmtl Inside
 Ns 96.078431
@@ -26,12 +26,12 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Ka ..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
-map_Kd ..\Textures\ShaderBall\Dirty_gold_01_Color.png
-map_bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-map_Ns ..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
-map_d ..\Textures\ShaderBall\Dirty_gold_01_AO.png
+map_Ka ..\..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
+map_Kd ..\..\Textures\ShaderBall\Dirty_gold_01_Color.png
+map_bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+map_Ns ..\..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
+map_d ..\..\Textures\ShaderBall\Dirty_gold_01_AO.png
 
 newmtl Outside
 Ns 96.078431
@@ -42,9 +42,9 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Ka ..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
-map_Kd ..\Textures\ShaderBall\Dirty_gold_01_Color.png
-map_bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-bump ..\Textures\ShaderBall\Dirty_gold_01_Normal.png
-map_Ns ..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
-map_d ..\Textures\ShaderBall\Dirty_gold_01_AO.png
+map_Ka ..\..\Textures\ShaderBall\Dirty_gold_01_Metallic.png
+map_Kd ..\..\Textures\ShaderBall\Dirty_gold_01_Color.png
+map_bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+bump ..\..\Textures\ShaderBall\Dirty_gold_01_Normal.png
+map_Ns ..\..\Textures\ShaderBall\Dirty_gold_01_Roughness.png
+map_d ..\..\Textures\ShaderBall\Dirty_gold_01_AO.png
