@@ -28,27 +28,34 @@ RenderDevice::~RenderDevice()
 
 bool RenderDevice::Init(const Desc& desc)
 {
-	m_GraphicsInfra.Init();
+	m_GraphicsInfra.Init(true);
 
 	IDXGIAdapter3* adapter = nullptr;
-	int adapterIndex = 1;
+	int adapterItr = 0, adapterIndex = 0;
+	size_t vram = 0;
 
-	while (m_GraphicsInfra.ptr->EnumAdapters(adapterIndex, reinterpret_cast<IDXGIAdapter**>(&adapter)) != DXGI_ERROR_NOT_FOUND)
+	while (m_GraphicsInfra.ptr->EnumAdapters(adapterItr, reinterpret_cast<IDXGIAdapter**>(&adapter)) != DXGI_ERROR_NOT_FOUND)
 	{
 		DXGI_ADAPTER_DESC1 desc;
 		adapter->GetDesc1(&desc);
 		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 		{
-			adapter = nullptr;
-			adapterIndex++;
+			adapterItr++;
 			continue;
 		}
 		if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
 		{
-			break;
+			// Query memory
+			if (desc.DedicatedVideoMemory > vram)
+			{
+				vram = desc.DedicatedVideoMemory;
+				adapterIndex = adapterItr;
+			}
+			adapter->Release();
 		}
-		adapterIndex++;
+		adapterItr++;
 	}
+	m_GraphicsInfra.ptr->EnumAdapters(adapterIndex, reinterpret_cast<IDXGIAdapter**>(&adapter));
 	assert(adapter);
 
 	m_Device.Init(adapter);
@@ -98,6 +105,18 @@ void RenderDevice::Submit(const CopyCommandList* commandLists, uint32_t num)
 	}
 }
 
+void RenderDevice::Submit(const CommandList* commandLists, uint32_t num)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	for (uint32_t cnt = 0; cnt < num; ++cnt)
+	{
+		HRESULT hr = commandLists[cnt].ptr->Close();
+		assert(hr == S_OK);
+		m_ppCommandLists.push_back(static_cast<ID3D12CommandList*>(commandLists[cnt].ptr));
+	}
+}
+
 void RenderDevice::Execute()
 {
 	m_RenderQueue.ptr->ExecuteCommandLists(m_ppCommandLists.size(), m_ppCommandLists.data());
@@ -105,6 +124,19 @@ void RenderDevice::Execute()
 
 	m_ppCommandLists.clear();
 
+	m_Fence.CPUWaitFor(m_FenceValue);
+	m_FenceValue++;
+}
+
+void RenderDevice::ExecuteAndPresent()
+{
+	m_RenderQueue.ptr->ExecuteCommandLists(m_ppCommandLists.size(), m_ppCommandLists.data());
+	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
+
+	m_ppCommandLists.clear();
+
+	m_SwapChain.ptr->Present(0, 0);
+	
 	m_Fence.CPUWaitFor(m_FenceValue);
 	m_FenceValue++;
 }

@@ -56,9 +56,11 @@ public:
 	*	@param num
 	*/
 	void Submit(const CopyCommandList* commandLists, uint32_t num);
+	void Submit(const CommandList* commandLists, uint32_t num);
 
 	/** @brief Execute the submitted command lists */
 	void Execute();
+	void ExecuteAndPresent();
 
 	/** @brief Wait for render queue to be idle */
 	void WaitForIdle();
