@@ -9,6 +9,8 @@ namespace DE
 {
 
 class CommandList;
+class FramegraphResource;
+class FramegraphBuilder;
 
 template <typename T_DATA>
 class FramegraphPass : public FramegraphPassBase
@@ -28,9 +30,9 @@ public:
 	FramegraphPass& operator=(FramegraphPass&& other) = default;
 	~FramegraphPass() = default;
 
-	void Setup() override
+	void Setup(FramegraphBuilder& builder) override
 	{
-		m_Setup(m_Data);
+		m_Setup(builder, m_Data);
 	}
 
 	void Execute() override
@@ -46,6 +48,8 @@ protected:
 	T_DATA m_Data;
 	std::function<void(T_DATA&)> m_Setup;
 	std::function<void(T_DATA&, CommandList&)> m_Execute;
+
+	//std::vector<D3D12_RESOURCE_BARRIER> m_resourceBarriers;
 };
 
 }
