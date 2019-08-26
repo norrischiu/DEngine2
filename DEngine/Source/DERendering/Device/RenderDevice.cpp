@@ -5,8 +5,9 @@
 #include <dxgi1_4.h>
 // Engine
 #include <DERendering/DERendering.h>
-#include <DERendering/DataType/graphicsNativeType.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/Device/CopyCommandList.h>
+#include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/Framegraph/Framegraph.h>
 #include "RenderDevice.h"
 
@@ -105,15 +106,15 @@ void RenderDevice::Submit(const CopyCommandList* commandLists, uint32_t num)
 	}
 }
 
-void RenderDevice::Submit(const CommandList* commandLists, uint32_t num)
+void RenderDevice::Submit(const DrawCommandList* commandLists, uint32_t num)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	for (uint32_t cnt = 0; cnt < num; ++cnt)
 	{
-		HRESULT hr = commandLists[cnt].ptr->Close();
+		HRESULT hr = commandLists[cnt].GetCommandList().ptr->Close();
 		assert(hr == S_OK);
-		m_ppCommandLists.push_back(static_cast<ID3D12CommandList*>(commandLists[cnt].ptr));
+		m_ppCommandLists.push_back(static_cast<ID3D12CommandList*>(commandLists[cnt].GetCommandList().ptr));
 	}
 }
 

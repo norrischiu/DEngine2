@@ -16,6 +16,7 @@ namespace DE
 
 class Framegraph;
 class CopyCommandList;
+class DrawCommandList;
 
 /** @brief Interface to D3D12 device, queue and swapchain*/
 class RenderDevice
@@ -56,7 +57,7 @@ public:
 	*	@param num
 	*/
 	void Submit(const CopyCommandList* commandLists, uint32_t num);
-	void Submit(const CommandList* commandLists, uint32_t num);
+	void Submit(const DrawCommandList* commandLists, uint32_t num);
 
 	/** @brief Execute the submitted command lists */
 	void Execute();
