@@ -2,6 +2,7 @@
 
 #include <DECore/Math/simdmath.h>
 #include <DECore/Input/Keyboard.h>
+#include <DECore/Input/Mouse.h>
 
 namespace DE
 {
@@ -21,6 +22,7 @@ public:
 
 	void ParseInput(float dt)
 	{
+		// keyboard
 		for (int key = 0; key < Keyboard::KEY_NUM; ++key)
 		{
 			if (Keyboard::m_currState.Keys[key])
@@ -52,6 +54,13 @@ public:
 			}
 		}
 		m_mView = Matrix4::LookAtMatrix(m_vPos, m_vLookAt, m_vUp);
+
+		// mouse
+		if (Mouse::m_currState.Buttons[0])
+		{
+			Mouse::m_lastState.cursorPos[0];
+			Mouse::m_currState.cursorPos[0];
+		}
 	}
 
 	// view matrix: world to camera

@@ -28,8 +28,6 @@ public:
 	static void SetMousePos(long x, long y);
 	static void SetButton(int virtualKey, bool flag);
 
-private:
-
 	static State m_currState;
 	static State m_lastState;
 };
