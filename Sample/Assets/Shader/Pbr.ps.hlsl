@@ -39,7 +39,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 		IN.binormal.x, IN.binormal.y, IN.binormal.z,
 		IN.normal.x, IN.normal.y, IN.normal.z
 	};
-	float3 N = normalize(float4(mul(normal, TBN), 0));
+	float3 N = normalize(float4(mul(normal, TBN), 0)).xyz;
 	float3 V = normalize(g_eyePosWS - IN.posWS).xyz;
 
 	float3 F0 = float3(0.04f, 0.04f, 0.04f); // default F0 for dielectrics, not accurate but close enough
