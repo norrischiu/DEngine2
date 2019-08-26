@@ -1,6 +1,9 @@
 #pragma once
 
 #include <DEGame/Component/Camera.h>
+#include <DERendering/RenderPass/ForwardPass.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/Device/DrawCommandList.h>
 
 namespace DE
 {
@@ -14,9 +17,11 @@ public:
 	SampleModel() = default;
 	~SampleModel() = default;
 
-	void Setup(DE::RenderDevice& renderer, DE::Framegraph& framegraph);
-	void Update(float dt);
+	void Setup(DE::RenderDevice& renderDevice);
+	void Update(DE::RenderDevice& renderDevice, float dt);
 
 private:
 	DE::Camera m_Camera;
+	DE::DrawCommandList m_commandList;
+	DE::ForwardPass m_forwardPass;
 };
