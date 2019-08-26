@@ -54,12 +54,28 @@ struct ConstantBufferView
 
 struct RenderTargetView final
 {
-	void Init(const GraphicsDevice& device, DescriptorHeap& heap, const Texture& texture)
+	void Init(const GraphicsDevice& device, DescriptorHeap& heap, const Texture& texture, uint32_t mip = 0, uint32_t plane = 0)
 	{
 		desc.Format = texture.m_Desc.Format;
 		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		desc.Texture2D.MipSlice = 0;
-		desc.Texture2D.PlaneSlice = 0;
+		desc.Texture2D.MipSlice = mip;
+		desc.Texture2D.PlaneSlice = plane;
+
+		descriptor = heap.current;
+		device.ptr->CreateRenderTargetView(texture.ptr, &desc, descriptor);
+		heap.current.ptr += device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+		resource = texture.ptr;
+	}
+
+	void InitFromTexture2DArray(const GraphicsDevice& device, DescriptorHeap& heap, const Texture& texture, uint32_t arraySlice, uint32_t arraySize, uint32_t slice = 0, uint32_t mip = 0)
+	{
+		desc.Format = texture.m_Desc.Format;
+		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+		desc.Texture2DArray.FirstArraySlice = arraySlice;
+		desc.Texture2DArray.ArraySize = arraySize;
+		desc.Texture2DArray.MipSlice = mip;
+		desc.Texture2DArray.PlaneSlice = slice;
 
 		descriptor = heap.current;
 		device.ptr->CreateRenderTargetView(texture.ptr, &desc, descriptor);

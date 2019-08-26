@@ -21,14 +21,16 @@ public:
 #endif
 	}
 
-	void Init()
+	void Init(bool debug)
 	{
 		HRESULT hr = {};
 #if DEBUG
-		hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pDebugController));
-		if (hr == S_OK)
-		{
-			m_pDebugController->EnableDebugLayer();
+		if (debug) {
+			hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pDebugController));
+			if (hr == S_OK)
+			{
+				m_pDebugController->EnableDebugLayer();
+			}
 		}
 #endif
 		hr = CreateDXGIFactory1(IID_PPV_ARGS(&ptr));
@@ -232,32 +234,6 @@ public:
 	
 private:
 	D3D12_INPUT_ELEMENT_DESC inputElementDesc[16];
-};
-
-class RootSignature final
-{
-public:
-	RootSignature() = default;
-	RootSignature(const RootSignature&) = delete;
-	RootSignature& operator=(const RootSignature&) = delete;
-	~RootSignature()
-	{
-		ptr->Release();
-	}
-
-	void Init(const GraphicsDevice& device, const D3D12_ROOT_SIGNATURE_DESC& desc)
-	{
-		ID3DBlob* signature = nullptr;
-		HRESULT hr = {};
-		hr = D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
-		assert(hr == S_OK);
-		hr = device.ptr->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&ptr));
-		assert(hr == S_OK);
-
-		signature->Release();
-	}
-
-	ID3D12RootSignature* ptr;
 };
 
 class GraphicsPipelineState final
