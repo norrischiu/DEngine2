@@ -196,3 +196,6 @@ FakesAssemblies/
 # *.vcxproj
 *.db
 *.opendb
+
+# Exception
+!**/External/**
