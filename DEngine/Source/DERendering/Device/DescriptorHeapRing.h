@@ -35,7 +35,7 @@ public:
 
 	ID3D12DescriptorHeap* Raw()
 	{
-		return m_Heap.ptr;
+		return m_Heap.ptr.Get();
 	}
 
 private:

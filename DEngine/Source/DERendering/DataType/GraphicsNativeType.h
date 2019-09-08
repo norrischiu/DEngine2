@@ -3,6 +3,9 @@
 // Window
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <wrl/client.h>
+
+using Microsoft::WRL::ComPtr;
 
 namespace DE
 {
@@ -184,7 +187,7 @@ public:
 	DescriptorHeap& operator=(const DescriptorHeap&) = default;
 	~DescriptorHeap()
 	{
-		// ptr->Release();
+		ptr->Release();
 	}
 
 	void Init(const GraphicsDevice& device, uint32_t descriptorCount, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
@@ -215,7 +218,7 @@ public:
 		gpuCurrent = ptr->GetGPUDescriptorHandleForHeapStart();
 	}
 
-	ID3D12DescriptorHeap* ptr;
+	ComPtr<ID3D12DescriptorHeap> ptr;
 	D3D12_CPU_DESCRIPTOR_HANDLE current;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuCurrent;
 	uint32_t stride;
