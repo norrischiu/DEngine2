@@ -18,13 +18,13 @@ void SampleModel::Setup(RenderDevice& renderDevice)
 	SceneLoader sceneLoader;
 	sceneLoader.Init(renderDevice);
 	sceneLoader.SetRootPath("..\\Assets\\");
-	sceneLoader.Load("ShaderBall");
+	sceneLoader.Load("ShaderBall", m_scene);
 
 	TextureLoader texLoader;
 	texLoader.Init(renderDevice);
 
 	m_Camera.Init(Vector3(2.0f, 2.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f);
-	m_commandList.Init(renderDevice.m_Device);
+	m_commandList.Init(renderDevice);
 	m_forwardPass.Setup(renderDevice);
 
 #if 0
@@ -457,8 +457,20 @@ void SampleModel::Update(RenderDevice& renderDevice, float dt)
 {
 	m_Camera.ParseInput(dt);
 
-	m_commandList.BeginRenderPass();
-	m_forwardPass.Execute(m_commandList, m_Camera.GetPV());
+	// Prepare frame data
+	m_scene.ForEachMesh([&](uint32_t index) 
+	{
+		m_frameData.batcher.Add(index);
+	});
+	m_frameData.cameraWVP = m_Camera.GetPV();
+
+	// Render
+	m_commandList.Begin();
+	m_forwardPass.Execute(m_commandList, m_frameData);
 	renderDevice.Submit(&m_commandList, 1);
+
+	// Reset
+	renderDevice.Reset();
+	m_frameData.batcher.Reset();
 	
 }
