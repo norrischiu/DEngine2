@@ -36,18 +36,31 @@ public:
 		}
 	}
 
-	/** @brief	Construct an handle array by copying an existing array,
-	*			the underlying mechanics is to simply copy all member variables and imcrement
-	*			the counter at handle
+	/** @brief	Move the other handle from another array, and invalidate it
 	*
 	*	@param other the other MyArray object
 	*/
-	MyArray(MyArray& other)
+	MyArray(MyArray&& other)
 	{
 		m_hElements = other.m_hElements;
+		other.m_hElements.m_counter = -1;
 		m_hElements.m_counter++;
 		m_iSize = other.m_iSize;
 		m_iCapacity = other.m_iCapacity;
+	}
+
+	/** @brief	Move the other handle from another array, and invalidate it
+	*
+	*	@param other the other MyArray object
+	*/
+	const MyArray& operator=(MyArray&& other)
+	{
+		m_hElements = other.m_hElements;
+		other.m_hElements.m_counter = -1;
+		m_hElements.m_counter++;
+		m_iSize = other.m_iSize;
+		m_iCapacity = other.m_iCapacity;
+		return *this;
 	}
 
 	/** @brief Free the memory used by this array's items */
