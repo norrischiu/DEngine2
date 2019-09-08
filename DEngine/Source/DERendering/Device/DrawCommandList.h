@@ -14,15 +14,15 @@ public:
 	DrawCommandList() = default;
 	~DrawCommandList() = default;
 
-	uint32_t Init(const GraphicsDevice& device);
+	uint32_t Init(RenderDevice& device);
 
-	void BeginRenderPass();
+	void Begin();
 
 	void SetSignature(RootSignature& signature);
 	void SetViewportAndScissorRect(float x, float y, float width, float height, float zMin, float zMax);
 	
 	void SetConstant(uint32_t index, const ConstantBufferView& cbv);
-	void SetReadOnlyResource(uint32_t index, const ShaderResourceView& srv);
+	void SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num);
 	
 	void ResourceBarrier(const RenderTargetView& rtv, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
@@ -35,6 +35,8 @@ public:
 
 //private:
 	CommandList m_CommandList;
+	DescriptorHeap m_ShaderResourceSubHeap;
+	RenderDevice* m_pDevice;
 	GraphicsPipelineState* m_pCurrPipeline;
 	RootSignature* m_pCurrSignature;
 	std::vector<D3D12_RESOURCE_BARRIER> m_Barriers;

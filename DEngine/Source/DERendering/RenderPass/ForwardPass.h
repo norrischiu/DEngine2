@@ -6,6 +6,7 @@ namespace DE
 {
 
 class DrawCommandList;
+class FrameData;
 
 class ForwardPass
 {
@@ -22,8 +23,6 @@ class ForwardPass
 		Texture depth;
 		DepthStencilView dsv;
 		ShaderResourceView srv[50];
-		DescriptorHeap cpuDescriptorHeap;
-		DescriptorHeap cbvSrvDescriptorHeap;
 		DescriptorHeap rtvDescriptorHeap;
 		DescriptorHeap dsvDescriptorHeap;
 		uint32_t backBufferIndex = 0;
@@ -50,7 +49,7 @@ public:
 	ForwardPass() = default;
 
 	void Setup(RenderDevice& renderDevice);
-	void Execute(DrawCommandList& commandList, Matrix4 cameraPV);
+	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
 private:
 	Data data;

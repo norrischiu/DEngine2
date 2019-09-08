@@ -8,6 +8,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
+#include <DERendering/Device/DescriptorHeapRing.h>
 // C++
 #include <mutex>
 
@@ -45,6 +46,9 @@ public:
 	*/
 	bool Init(const Desc& desc);
 
+	/** @brief Reset any memory pointer or state */
+	void Reset();
+
 	/** @brief This Execute the command lists recorded in framegraph
 	*
 	*	@param framegraph
@@ -75,6 +79,7 @@ public:
 
 	GraphicsInfrastructure		m_GraphicsInfra;
 	GraphicsDevice				m_Device;
+	DescriptorHeapRing			m_shaderResourceHeap;
 	CommandQueue				m_RenderQueue;
 	Fence						m_Fence;
 	uint64_t					m_FenceValue;

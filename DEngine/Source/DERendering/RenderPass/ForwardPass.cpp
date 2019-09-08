@@ -1,6 +1,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/Device/DrawCommandList.h>
+#include <DERendering/FrameData/FrameData.h>
 #include <DECore/FileSystem/FileLoader.h>
 
 namespace DE
@@ -135,8 +136,6 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 		data.pso.Init(renderDevice.m_Device, desc);
 	}
 	{
-		data.cpuDescriptorHeap.Init(renderDevice.m_Device, 65536, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
-		data.cbvSrvDescriptorHeap.Init(renderDevice.m_Device, 65536, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
 		data.rtvDescriptorHeap.Init(renderDevice.m_Device, 2, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
 		data.dsvDescriptorHeap.Init(renderDevice.m_Device, 1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
 	}
@@ -161,30 +160,16 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 		light.eyePos = Vector3(2.0f, 2.0f, -3.0f);
 		data.psCbv.buffer.Update(&light, sizeof(light));
 	}
-	{
-		for (uint32_t i = 0; i < 6; ++i)
-		{
-			auto& material = Materials::Get(Meshes::Get(i).m_MaterialID);
-			for (uint32_t j = 0; j < 5; ++j)
-			{
-				if (material.m_Textures[j].ptr != nullptr)
-				{
-					data.srv[i * 5 + j].Init(renderDevice.m_Device, data.cpuDescriptorHeap, material.m_Textures[j]);
-				}
-			}
-		}
-	}
 
 	data.pDevice = &renderDevice;
 }
 
-void ForwardPass::Execute(DrawCommandList& commandList, Matrix4 cameraPV)
+void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 {
 	PerObjectCBuffer transforms;
 	transforms.world = Matrix4::Identity;
-	transforms.wvp = cameraPV;
+	transforms.wvp = frameData.cameraWVP;
 	data.vsCbv.buffer.Update(&transforms, sizeof(transforms));
-
 
 	commandList.ResourceBarrier(data.rtv[data.backBufferIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
@@ -197,35 +182,26 @@ void ForwardPass::Execute(DrawCommandList& commandList, Matrix4 cameraPV)
 
 	commandList.SetSignature(data.rootSignature);
 	commandList.m_CommandList.ptr->SetPipelineState(data.pso.ptr);
-	commandList.m_CommandList.ptr->SetDescriptorHeaps(1, &data.cbvSrvDescriptorHeap.ptr);
 
 	commandList.SetConstant(0, data.vsCbv);
 	commandList.SetConstant(1, data.psCbv);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE descriptorTable;
-	descriptorTable = data.cbvSrvDescriptorHeap.ptr->GetGPUDescriptorHandleForHeapStart();
-	for (uint32_t i = 0; i < 6; ++i)
+	auto& meshes = frameData.batcher.Get();
+	for (auto& i : meshes)
 	{
-		// copy descriptor
-		uint32_t materialID = Meshes::Get(i).m_MaterialID;
-		data.pDevice->m_Device.ptr->CopyDescriptorsSimple(5, data.cbvSrvDescriptorHeap.current, data.srv[materialID * 5].descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		const Mesh& mesh = Meshes::Get(i);
+		uint32_t materialID = mesh.m_MaterialID;
 
-		commandList.m_CommandList.ptr->SetGraphicsRootDescriptorTable(0, descriptorTable);
+		commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
 		D3D12_VERTEX_BUFFER_VIEW vertexBuffers[] = { data.position[i].view, data.normal[i].view, data.tangent[i].view, data.texcoord[i].view };
 		commandList.m_CommandList.ptr->IASetVertexBuffers(0, 4, vertexBuffers);
 		commandList.m_CommandList.ptr->IASetIndexBuffer(&data.ibs[i].view);
 		commandList.m_CommandList.ptr->DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
-
-		data.cbvSrvDescriptorHeap.current.ptr += data.pDevice->m_Device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5;
-		descriptorTable.ptr += data.pDevice->m_Device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 5;
 	}
 
 	commandList.ResourceBarrier(data.rtv[data.backBufferIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	data.backBufferIndex = 1 - data.backBufferIndex;
-
-	data.cbvSrvDescriptorHeap.current = data.cbvSrvDescriptorHeap.ptr->GetCPUDescriptorHandleForHeapStart();
-
 }
 
 } // namespace DE

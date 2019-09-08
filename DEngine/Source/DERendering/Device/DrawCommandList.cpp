@@ -5,15 +5,19 @@
 namespace DE
 {
 
-uint32_t DrawCommandList::Init(const GraphicsDevice& device)
+uint32_t DrawCommandList::Init(RenderDevice& device)
 {
-	m_CommandList.Init(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_CommandList.Init(device.m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_pDevice = &device;
 	return 0;
 }
 
-void DrawCommandList::BeginRenderPass()
+void DrawCommandList::Begin()
 {
 	m_CommandList.Start();
+	m_ShaderResourceSubHeap = m_pDevice->m_shaderResourceHeap.Alloc(1024);
+	ID3D12DescriptorHeap* heap[] = { m_pDevice->m_shaderResourceHeap.Raw() };
+	m_CommandList.ptr->SetDescriptorHeaps(1, heap);
 }
 
 void DrawCommandList::SetViewportAndScissorRect(float x, float y, float width, float height, float zMin, float zMax)
@@ -44,9 +48,25 @@ void DrawCommandList::SetSignature(RootSignature& signature)
 void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv)
 {
 	assert(m_pCurrSignature);
+	assert(index < m_pCurrSignature->constantNum);
 
 	const uint32_t rootParamterIndex = m_pCurrSignature->constantDefs[index].rootParameterIndex;
 	m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress());
+}
+
+void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num)
+{
+	assert(m_pCurrSignature);
+	assert(index < m_pCurrSignature->readOnlyResourceNum);
+
+	const uint32_t rootParamterIndex = m_pCurrSignature->readOnlyResourceDefs[index].rootParameterIndex;
+	D3D12_GPU_DESCRIPTOR_HANDLE descriptorTable = m_ShaderResourceSubHeap.gpuCurrent;
+	for (uint32_t i = 0; i < num; ++i)
+	{
+		ShaderResourceView srv;
+		srv.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, textures[i]);
+	}
+	m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
 }
 
 void DrawCommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset)
