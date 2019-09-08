@@ -180,11 +180,11 @@ class DescriptorHeap final
 {
 public:
 	DescriptorHeap() = default;
-	DescriptorHeap(const DescriptorHeap&) = delete;
-	DescriptorHeap& operator=(const DescriptorHeap&) = delete;
+	DescriptorHeap(const DescriptorHeap&) = default;
+	DescriptorHeap& operator=(const DescriptorHeap&) = default;
 	~DescriptorHeap()
 	{
-		ptr->Release();
+		// ptr->Release();
 	}
 
 	void Init(const GraphicsDevice& device, uint32_t descriptorCount, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
@@ -199,10 +199,26 @@ public:
 		assert(hr == S_OK);
 
 		current = ptr->GetCPUDescriptorHandleForHeapStart();
+		gpuCurrent = ptr->GetGPUDescriptorHandleForHeapStart();
+		stride = device.ptr->GetDescriptorHandleIncrementSize(type);
+	}
+
+	void Increment(uint32_t num)
+	{
+		current.ptr += stride * num;
+		gpuCurrent.ptr += stride * num;
+	}
+
+	void Reset()
+	{
+		current = ptr->GetCPUDescriptorHandleForHeapStart();
+		gpuCurrent = ptr->GetGPUDescriptorHandleForHeapStart();
 	}
 
 	ID3D12DescriptorHeap* ptr;
 	D3D12_CPU_DESCRIPTOR_HANDLE current;
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuCurrent;
+	uint32_t stride;
 };
 
 class InputLayout final

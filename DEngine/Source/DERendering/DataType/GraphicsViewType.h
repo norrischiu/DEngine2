@@ -30,7 +30,7 @@ struct ShaderResourceView
 
 		descriptor = heap.current;
 		device.ptr->CreateShaderResourceView(texture.ptr, &desc, descriptor);
-		heap.current.ptr += device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		heap.Increment(1);
 
 		resource = texture.ptr;
 	}
