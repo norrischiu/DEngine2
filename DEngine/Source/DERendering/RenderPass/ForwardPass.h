@@ -19,12 +19,7 @@ class ForwardPass
 		IndexBuffer ibs[10];
 		GraphicsPipelineState pso;
 		RootSignature rootSignature;
-		RenderTargetView rtv[2];
 		Texture depth;
-		DepthStencilView dsv;
-		ShaderResourceView srv[50];
-		DescriptorHeap rtvDescriptorHeap;
-		DescriptorHeap dsvDescriptorHeap;
 		uint32_t backBufferIndex = 0;
 
 		ConstantBufferView vsCbv;

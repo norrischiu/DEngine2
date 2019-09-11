@@ -136,19 +136,10 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 		data.pso.Init(renderDevice.m_Device, desc);
 	}
 	{
-		data.rtvDescriptorHeap.Init(renderDevice.m_Device, 2, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
-		data.dsvDescriptorHeap.Init(renderDevice.m_Device, 1, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
-	}
-	{
-		data.rtv[0].Init(renderDevice.m_Device, data.rtvDescriptorHeap, *renderDevice.GetBackBuffer(0));
-		data.rtv[1].Init(renderDevice.m_Device, data.rtvDescriptorHeap, *renderDevice.GetBackBuffer(1));
-	}
-	{
 		D3D12_CLEAR_VALUE clearValue = {};
 		clearValue.DepthStencil.Depth = 1.0f;
 		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
 		data.depth.Init(renderDevice.m_Device, 1024, 768, 1, 1, DXGI_FORMAT_D32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &clearValue);
-		data.dsv.Init(renderDevice.m_Device, data.dsvDescriptorHeap, data.depth);
 	}
 	{
 		data.vsCbv.Init(renderDevice.m_Device, 256);
@@ -171,13 +162,13 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 	transforms.wvp = frameData.cameraWVP;
 	data.vsCbv.buffer.Update(&transforms, sizeof(transforms));
 
-	commandList.ResourceBarrier(data.rtv[data.backBufferIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
 
-	commandList.m_CommandList.ptr->OMSetRenderTargets(1, &data.rtv[data.backBufferIndex].descriptor, false, &data.dsv.descriptor);
-	float clearColor[4] = { 0.5f, 0.5f, 0.5f, 0.1f };
-	commandList.m_CommandList.ptr->ClearRenderTargetView(data.rtv[data.backBufferIndex].descriptor, clearColor, 0, nullptr);
-	commandList.m_CommandList.ptr->ClearDepthStencilView(data.dsv.descriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	float clearColor[] = { 0.5f, 0.5f, 0.5f, 0.1f };
+	commandList.SetRenderTargetDepth(data.pDevice->GetBackBuffer(data.backBufferIndex), 1, clearColor, &data.depth, 1.0f);
+
 	commandList.m_CommandList.ptr->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	commandList.SetSignature(data.rootSignature);
@@ -199,7 +190,7 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 		commandList.m_CommandList.ptr->DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
 	}
 
-	commandList.ResourceBarrier(data.rtv[data.backBufferIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	data.backBufferIndex = 1 - data.backBufferIndex;
 }
