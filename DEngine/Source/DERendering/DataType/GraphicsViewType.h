@@ -63,7 +63,7 @@ struct RenderTargetView final
 
 		descriptor = heap.current;
 		device.ptr->CreateRenderTargetView(texture.ptr, &desc, descriptor);
-		heap.current.ptr += device.ptr->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		heap.Increment(1);
 
 		resource = texture.ptr;
 	}

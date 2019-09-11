@@ -185,10 +185,7 @@ public:
 	DescriptorHeap() = default;
 	DescriptorHeap(const DescriptorHeap&) = default;
 	DescriptorHeap& operator=(const DescriptorHeap&) = default;
-	~DescriptorHeap()
-	{
-		ptr->Release();
-	}
+	~DescriptorHeap() = default;
 
 	void Init(const GraphicsDevice& device, uint32_t descriptorCount, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 	{

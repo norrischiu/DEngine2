@@ -63,7 +63,9 @@ bool RenderDevice::Init(const Desc& desc)
 	m_RenderQueue.Init(m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	m_Fence.Init(m_Device);
 	m_SwapChain.Init(m_GraphicsInfra, m_RenderQueue, desc.hWnd_, desc.windowWidth_, desc.windowHeight_, desc.backBufferCount_);
-	m_shaderResourceHeap.Init(m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_shaderResourceHeap.Init(m_Device, 65536, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true);
+	m_RtvHeap.Init(m_Device, 64, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false);
+	m_DsvHeap.Init(m_Device, 64, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false);
 
 	for (uint32_t i = 0; i < desc.backBufferCount_; ++i)
 	{
@@ -73,7 +75,7 @@ bool RenderDevice::Init(const Desc& desc)
 		m_BackBuffers[i]->Init(backBuffer);
 	}
 
-	m_ppCommandLists.reserve(264);
+	m_ppCommandLists.reserve(256);
 
 	return true;
 }
@@ -81,6 +83,8 @@ bool RenderDevice::Init(const Desc& desc)
 void RenderDevice::Reset()
 {
 	m_shaderResourceHeap.Reset();
+	m_RtvHeap.Reset();
+	m_DsvHeap.Reset();
 }
 
 void RenderDevice::Render(const Framegraph& framegraph)

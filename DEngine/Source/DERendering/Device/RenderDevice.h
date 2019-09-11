@@ -80,6 +80,8 @@ public:
 	GraphicsInfrastructure		m_GraphicsInfra;
 	GraphicsDevice				m_Device;
 	DescriptorHeapRing			m_shaderResourceHeap;
+	DescriptorHeapRing			m_RtvHeap;
+	DescriptorHeapRing			m_DsvHeap;
 	CommandQueue				m_RenderQueue;
 	Fence						m_Fence;
 	uint64_t					m_FenceValue;

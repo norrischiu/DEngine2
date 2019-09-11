@@ -10,9 +10,9 @@ class DescriptorHeapRing
 public:
 	DescriptorHeapRing() = default;
 
-	void Init(const GraphicsDevice& device, D3D12_DESCRIPTOR_HEAP_TYPE type)
+	void Init(const GraphicsDevice& device, uint32_t num, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 	{
-		m_Heap.Init(device, 65536, type, true);
+		m_Heap.Init(device, num, type, shaderVisible);
 	}
 
 	DescriptorHeap Alloc(uint32_t num)
