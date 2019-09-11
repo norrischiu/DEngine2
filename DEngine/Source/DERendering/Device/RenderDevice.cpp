@@ -71,7 +71,7 @@ bool RenderDevice::Init(const Desc& desc)
 	{
 		ID3D12Resource* backBuffer = nullptr;
 		m_SwapChain.ptr->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-		m_BackBuffers[i] = std::make_shared<Texture>();
+		m_BackBuffers[i] = std::make_unique<Texture>();
 		m_BackBuffers[i]->Init(backBuffer);
 	}
 
@@ -156,9 +156,9 @@ void RenderDevice::WaitForIdle()
 {
 }
 
-std::shared_ptr<Texture> RenderDevice::GetBackBuffer(uint32_t index)
+Texture* RenderDevice::GetBackBuffer(uint32_t index)
 {
-	return m_BackBuffers[index];
+	return m_BackBuffers[index].get();
 }
 
 }

@@ -73,9 +73,9 @@ public:
 	/** @brief This function will execute the command lists recorded in framegraph
 	*
 	*	@param index index to the swapchain
-	*	@return the unique pointer to the back buffer Texture object
+	*	@return a weak pointer to the back buffer Texture object
 	*/
-	std::shared_ptr<Texture> GetBackBuffer(uint32_t index);
+	Texture* GetBackBuffer(uint32_t index);
 
 	GraphicsInfrastructure		m_GraphicsInfra;
 	GraphicsDevice				m_Device;
@@ -86,7 +86,7 @@ public:
 	Fence						m_Fence;
 	uint64_t					m_FenceValue;
 	SwapChain					m_SwapChain;
-	std::shared_ptr<Texture>	m_BackBuffers[2];
+	std::unique_ptr<Texture>	m_BackBuffers[2];
 
 	std::mutex					m_mutex;
 	Vector<ID3D12CommandList*>	m_ppCommandLists;
