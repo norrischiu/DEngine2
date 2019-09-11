@@ -5,10 +5,10 @@
 namespace DE
 {
 
-uint32_t DrawCommandList::Init(RenderDevice& device)
+uint32_t DrawCommandList::Init(RenderDevice* device)
 {
-	m_CommandList.Init(device.m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-	m_pDevice = &device;
+	m_CommandList.Init(device->m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+	m_pDevice = device;
 	return 0;
 }
 
@@ -16,6 +16,9 @@ void DrawCommandList::Begin()
 {
 	m_CommandList.Start();
 	m_ShaderResourceSubHeap = m_pDevice->m_shaderResourceHeap.Alloc(1024);
+	m_RtvSubHeap = m_pDevice->m_RtvHeap.Alloc(16);
+	m_DsvSubHeap = m_pDevice->m_DsvHeap.Alloc(16);
+
 	ID3D12DescriptorHeap* heap[] = { m_pDevice->m_shaderResourceHeap.Raw() };
 	m_CommandList.ptr->SetDescriptorHeaps(1, heap);
 }
@@ -69,6 +72,33 @@ void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uin
 	m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
 }
 
+void DrawCommandList::SetRenderTargetDepth(Texture* renderTarget, uint32_t num, float* clearColor, Texture* depth, float clearDepth)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE descriptors = m_RtvSubHeap.current;
+	for (uint32_t i = 0; i < num; ++i)
+	{
+		RenderTargetView rtv;
+		rtv.Init(m_pDevice->m_Device, m_RtvSubHeap, renderTarget[i]);
+		if (clearColor != nullptr) {
+			m_CommandList.ptr->ClearRenderTargetView(descriptors, clearColor, 0, nullptr);
+			clearColor += 4;
+		}
+	}
+	if (depth) 
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor = m_DsvSubHeap.current;
+		DepthStencilView dsv;
+		dsv.Init(m_pDevice->m_Device, m_DsvSubHeap, *depth);
+		m_CommandList.ptr->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, clearDepth, 0, 0, nullptr);
+		
+		m_CommandList.ptr->OMSetRenderTargets(num, &descriptors, true, &depthDescriptor);
+	}
+	else 
+	{
+		m_CommandList.ptr->OMSetRenderTargets(num, &descriptors, true, nullptr);
+	}
+}
+
 void DrawCommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset)
 {
 	for (const auto& barrier : m_Barriers) {
@@ -79,12 +109,12 @@ void DrawCommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanc
 	m_CommandList.ptr->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
 }
 
-void DrawCommandList::ResourceBarrier(const RenderTargetView & rtv, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+void DrawCommandList::ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = rtv.resource;
+	barrier.Transition.pResource = texture.ptr;
 	barrier.Transition.StateBefore = before;
 	barrier.Transition.StateAfter = after;
 

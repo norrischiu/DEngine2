@@ -14,7 +14,7 @@ public:
 	DrawCommandList() = default;
 	~DrawCommandList() = default;
 
-	uint32_t Init(RenderDevice& device);
+	uint32_t Init(RenderDevice* device);
 
 	void Begin();
 
@@ -23,8 +23,9 @@ public:
 	
 	void SetConstant(uint32_t index, const ConstantBufferView& cbv);
 	void SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num);
-	
-	void ResourceBarrier(const RenderTargetView& rtv, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
+	void SetRenderTargetDepth(Texture* renderTarget, uint32_t num, float* clearColor, Texture* depth, float clearDepth);
+
+	void ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 	void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset);
 
@@ -36,6 +37,8 @@ public:
 //private:
 	CommandList m_CommandList;
 	DescriptorHeap m_ShaderResourceSubHeap;
+	DescriptorHeap m_RtvSubHeap;
+	DescriptorHeap m_DsvSubHeap;
 	RenderDevice* m_pDevice;
 	GraphicsPipelineState* m_pCurrPipeline;
 	RootSignature* m_pCurrSignature;
