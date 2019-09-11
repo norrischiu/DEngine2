@@ -13,7 +13,7 @@
 
 using namespace DE;
 
-void SampleModel::Setup(RenderDevice& renderDevice)
+void SampleModel::Setup(RenderDevice* renderDevice)
 {
 	SceneLoader sceneLoader;
 	sceneLoader.Init(renderDevice);
@@ -25,7 +25,7 @@ void SampleModel::Setup(RenderDevice& renderDevice)
 
 	m_Camera.Init(Vector3(2.0f, 2.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f);
 	m_commandList.Init(renderDevice);
-	m_forwardPass.Setup(renderDevice);
+	m_forwardPass.Setup(*renderDevice);
 
 #if 0
 	Vector<char> iblPrecomputeVs;

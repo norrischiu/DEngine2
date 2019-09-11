@@ -17,7 +17,7 @@ class TextureLoader
 {
 public:
 
-	void Init(RenderDevice& device);
+	void Init(RenderDevice* device);
 	void Load(Texture& texture, const char* path);
 
 private:

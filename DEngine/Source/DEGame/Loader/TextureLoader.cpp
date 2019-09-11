@@ -12,9 +12,9 @@
 namespace DE
 {
 
-void TextureLoader::Init(RenderDevice& device)
+void TextureLoader::Init(RenderDevice* device)
 {
-	m_pRenderDevice = &device;
+	m_pRenderDevice = device;
 }
 
 struct LoadToMaterialsData

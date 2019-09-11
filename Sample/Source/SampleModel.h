@@ -19,7 +19,7 @@ public:
 	SampleModel() = default;
 	~SampleModel() = default;
 
-	void Setup(DE::RenderDevice& renderDevice);
+	void Setup(DE::RenderDevice* renderDevice);
 	void Update(DE::RenderDevice& renderDevice, float dt);
 
 private:
