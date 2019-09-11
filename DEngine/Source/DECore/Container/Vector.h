@@ -20,19 +20,24 @@ class MyArray
 
 public:
 
-	/** @brief	Construct an handle array with give capacity. Enough capacity should be allocated 
-	*			to fit the possible size of the array in order avoid reallocation
+	/** @brief Default constructor **/
+	MyArray() = default;
+
+	/** @brief	Construct an handle array with given size and construct elements
 	*
-	*	@param capacity
+	*	@param size
 	*/
-	MyArray(size_t capacity = 0)
+	MyArray(size_t size)
 	{
-		m_iSize = 0;
-		m_iCapacity = capacity;
-		if (m_iCapacity > 0)
+		m_iSize = size;
+		m_iCapacity = size;
+		if (size > 0)
 		{
-			m_hElements.Set(sizeof(T) * capacity);
-			memset(m_hElements.Raw(), NULL, sizeof(T) * capacity);
+			m_hElements.Set(sizeof(T) * size);
+			for (uint32_t i = 0; i < size; ++i) 
+			{
+				new (&this->operator[](i)) T();
+			}
 		}
 	}
 
@@ -229,9 +234,9 @@ public:
 
 private:
 
-	Handle					m_hElements;	// the handle array containing the exact data
-	std::size_t				m_iSize;		// the current size of array
-	std::size_t				m_iCapacity;	// the current capacity
+	Handle					m_hElements;		// the handle array containing the exact data
+	std::size_t				m_iSize = 0;		// the current size of array
+	std::size_t				m_iCapacity = 0;	// the current capacity
 };
 
 template<class T> 

@@ -44,7 +44,7 @@ Job* FileLoader::LoadAsync(const char* path, Vector<char>& output)
 	Vector<Job::Desc> jobDescs(1);
 	LoadFileData* data = new LoadFileData{ path, output };
 	Job::Desc desc(&LoadFile, data, nullptr);
-	jobDescs.push_back(std::move(desc));
+	jobDescs[0] = std::move(desc);
 	return JobScheduler::Instance()->Run(jobDescs);
 }
 

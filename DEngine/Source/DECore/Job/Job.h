@@ -13,6 +13,7 @@ struct DllExport alignas(std::hardware_destructive_interference_size) Job
 	/** @brief Description to create a actual job */
 	struct Desc
 	{
+		Desc() = default;
 		Desc(void(*pFunc)(void*), void* pData, Job* pParent)
 			: m_pFunction(pFunc)
 			, m_pData(pData)

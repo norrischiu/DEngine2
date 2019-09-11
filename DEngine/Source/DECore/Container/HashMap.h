@@ -36,6 +36,9 @@ public:
 	*/
 	struct HashMapPair
 	{
+		/** @brief	default consturctor **/
+		HashMapPair() = default;
+
 		/********************************************************************************
 		*	--- Constructor:
 		*	HashMapPair(const char*, T)
