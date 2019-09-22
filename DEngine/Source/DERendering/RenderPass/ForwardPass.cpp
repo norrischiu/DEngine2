@@ -18,69 +18,6 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 
 	HRESULT hr;
 
-	for (uint32_t i = 0; i < 6; ++i)
-	{
-		// vertex
-		std::size_t num = Meshes::Get(i).m_Vertices.size();
-		std::size_t size = num * sizeof(float3);
-		auto& vertices = Meshes::Get(i).m_Vertices;
-
-		data.position[i].Init(renderDevice.m_Device, sizeof(float3), size);
-
-		void* address = nullptr;
-		D3D12_RANGE range{ 0, size };
-		data.position[i].ptr->Map(0, &range, &address);
-		memcpy(address, vertices.data(), size);
-		data.position[i].ptr->Unmap(0, &range);
-
-		// normal
-		num = Meshes::Get(i).m_Normals.size();
-		size = num * sizeof(float3);
-		auto& normals = Meshes::Get(i).m_Normals;
-
-		data.normal[i].Init(renderDevice.m_Device, sizeof(float3), size);
-
-		range = { 0, size };
-		data.normal[i].ptr->Map(0, &range, &address);
-		memcpy(address, normals.data(), size);
-		data.normal[i].ptr->Unmap(0, &range);
-
-		// tangent
-		num = Meshes::Get(i).m_Tangents.size();
-		size = num * sizeof(float3);
-		auto& tangents = Meshes::Get(i).m_Tangents;
-
-		data.tangent[i].Init(renderDevice.m_Device, sizeof(float3), size);
-
-		range = D3D12_RANGE{ 0, size };
-		data.tangent[i].ptr->Map(0, &range, &address);
-		memcpy(address, tangents.data(), size);
-		data.tangent[i].ptr->Unmap(0, &range);
-
-		// texcoord
-		num = Meshes::Get(i).m_TexCoords.size();
-		size = num * sizeof(float2);
-		auto& texcoords = Meshes::Get(i).m_TexCoords;
-
-		data.texcoord[i].Init(renderDevice.m_Device, sizeof(float2), size);
-
-		range = D3D12_RANGE{ 0, size };
-		data.texcoord[i].ptr->Map(0, &range, &address);
-		memcpy(address, texcoords.data(), size);
-		data.texcoord[i].ptr->Unmap(0, &range);
-
-		// index
-		num = Meshes::Get(i).m_Indices.size();
-		size = num * sizeof(uint3);
-		auto& indices = Meshes::Get(i).m_Indices;
-
-		data.ibs[i].Init(renderDevice.m_Device, sizeof(uint3), size);
-
-		range = D3D12_RANGE{ 0, size };
-		data.ibs[i].ptr->Map(0, &range, &address);
-		memcpy(address, indices.data(), size);
-		data.ibs[i].ptr->Unmap(0, &range);
-	}
 	{
 		ConstantDefinition constants[2] = { {0, D3D12_SHADER_VISIBILITY_VERTEX}, {1, D3D12_SHADER_VISIBILITY_PIXEL} };
 		ReadOnlyResourceDefinition readOnly = { 0, 5, D3D12_SHADER_VISIBILITY_PIXEL };
@@ -184,10 +121,10 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 		uint32_t materialID = mesh.m_MaterialID;
 
 		commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
-		VertexBuffer vertexBuffers[] = { data.position[i], data.normal[i], data.tangent[i], data.texcoord[i] };
+		VertexBuffer vertexBuffers[] = { mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords };
 		commandList.SetVertexBuffers(vertexBuffers, 4);
-		commandList.SetIndexBuffer(data.ibs[i]);
-		commandList.DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
+		commandList.SetIndexBuffer(mesh.m_Indices);
+		commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
 	}
 
 	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

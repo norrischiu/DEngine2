@@ -41,11 +41,13 @@ struct Mesh final
 {
 
 public:
-	Vector<float3> m_Vertices;
-	Vector<float3> m_Normals;
-	Vector<float3> m_Tangents;
-	Vector<uint3> m_Indices;
-	Vector<float2> m_TexCoords;
+	VertexBuffer m_Vertices;
+	VertexBuffer m_Normals;
+	VertexBuffer m_Tangents;
+	VertexBuffer m_TexCoords;
+	IndexBuffer m_Indices;
+
+	uint32_t m_iNumIndices;
 	uint32_t m_MaterialID;
 };
 

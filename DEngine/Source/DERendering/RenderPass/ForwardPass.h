@@ -12,11 +12,6 @@ class ForwardPass
 {
 	struct Data final
 	{
-		VertexBuffer position[10];
-		VertexBuffer normal[10];
-		VertexBuffer tangent[10];
-		VertexBuffer texcoord[10];
-		IndexBuffer ibs[10];
 		GraphicsPipelineState pso;
 		RootSignature rootSignature;
 		Texture depth;
