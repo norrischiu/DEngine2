@@ -18,9 +18,14 @@ public:
 
 	void Begin();
 
-	void SetSignature(RootSignature& signature);
+	void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
+	void SetSignature(RootSignature* signature);
+	void SetPipeline(const GraphicsPipelineState& pipeline);
 	void SetViewportAndScissorRect(float x, float y, float width, float height, float zMin, float zMax);
 	
+	void SetVertexBuffers(VertexBuffer* buffers, uint32_t num);
+	void SetIndexBuffer(const IndexBuffer& buffer);
+
 	void SetConstant(uint32_t index, const ConstantBufferView& cbv);
 	void SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num);
 	void SetRenderTargetDepth(Texture* renderTarget, uint32_t num, float* clearColor, Texture* depth, float clearDepth);

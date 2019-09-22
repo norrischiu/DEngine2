@@ -169,10 +169,10 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 	float clearColor[] = { 0.5f, 0.5f, 0.5f, 0.1f };
 	commandList.SetRenderTargetDepth(data.pDevice->GetBackBuffer(data.backBufferIndex), 1, clearColor, &data.depth, 1.0f);
 
-	commandList.m_CommandList.ptr->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList.SetSignature(data.rootSignature);
-	commandList.m_CommandList.ptr->SetPipelineState(data.pso.ptr);
+	commandList.SetSignature(&data.rootSignature);
+	commandList.SetPipeline(data.pso);
 
 	commandList.SetConstant(0, data.vsCbv);
 	commandList.SetConstant(1, data.psCbv);
@@ -184,10 +184,10 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 		uint32_t materialID = mesh.m_MaterialID;
 
 		commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
-		D3D12_VERTEX_BUFFER_VIEW vertexBuffers[] = { data.position[i].view, data.normal[i].view, data.tangent[i].view, data.texcoord[i].view };
-		commandList.m_CommandList.ptr->IASetVertexBuffers(0, 4, vertexBuffers);
-		commandList.m_CommandList.ptr->IASetIndexBuffer(&data.ibs[i].view);
-		commandList.m_CommandList.ptr->DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
+		VertexBuffer vertexBuffers[] = { data.position[i], data.normal[i], data.tangent[i], data.texcoord[i] };
+		commandList.SetVertexBuffers(vertexBuffers, 4);
+		commandList.SetIndexBuffer(data.ibs[i]);
+		commandList.DrawIndexedInstanced(Meshes::Get(i).m_Indices.size() * 3, 1, 0, 0, 0);
 	}
 
 	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

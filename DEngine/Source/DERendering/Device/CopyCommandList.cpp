@@ -52,7 +52,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	dst.SubresourceIndex = 0; 
 	
 	D3D12_TEXTURE_COPY_LOCATION src;
-	src.pResource = m_UploadBuffer.ptr;
+	src.pResource = m_UploadBuffer.ptr.Get();
 	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	src.PlacedFootprint.Offset = offset;
 	src.PlacedFootprint.Footprint = footprint;

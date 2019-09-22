@@ -42,10 +42,36 @@ void DrawCommandList::SetViewportAndScissorRect(float x, float y, float width, f
 	m_CommandList.ptr->RSSetScissorRects(1, &scissorRect);
 }
 
-void DrawCommandList::SetSignature(RootSignature& signature)
+void DrawCommandList::SetVertexBuffers(VertexBuffer* buffers, uint32_t num)
 {
-	m_pCurrSignature = &signature;
-	m_CommandList.ptr->SetGraphicsRootSignature(signature.ptr);
+	Vector<D3D12_VERTEX_BUFFER_VIEW> views(num);
+	for (uint32_t i = 0; i < num; ++i)
+	{
+		views[i] = buffers[i].view;
+	}
+	m_CommandList.ptr->IASetVertexBuffers(0, num, views.data());
+
+}
+
+void DrawCommandList::SetIndexBuffer(const IndexBuffer& buffer)
+{
+	m_CommandList.ptr->IASetIndexBuffer(&buffer.view);
+}
+
+void DrawCommandList::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology)
+{
+	m_CommandList.ptr->IASetPrimitiveTopology(topology);
+}
+
+void DrawCommandList::SetSignature(RootSignature* signature)
+{
+	m_pCurrSignature = signature;
+	m_CommandList.ptr->SetGraphicsRootSignature(signature->ptr);
+}
+
+void DrawCommandList::SetPipeline(const GraphicsPipelineState& pipeline)
+{
+	m_CommandList.ptr->SetPipelineState(pipeline.ptr);
 }
 
 void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv)
