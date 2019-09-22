@@ -7,6 +7,8 @@
 // Engine
 #include <DERendering/DataType/GraphicsNativeType.h>
 
+using Microsoft::WRL::ComPtr;
+
 namespace DE 
 {
 
@@ -71,13 +73,8 @@ struct Buffer
 public:
 
 	Buffer() = default;
-	~Buffer()
-	{
-		if (ptr)
-		{
-			ptr->Release();
-		}
-	}
+	Buffer(const Buffer&) = default;
+	~Buffer() = default;
 
 	void Init(const GraphicsDevice& device, std::size_t size, D3D12_HEAP_TYPE heapType)
 	{
@@ -122,7 +119,7 @@ public:
 		ptr->Unmap(0, &range);
 	}
 
-	ID3D12Resource* ptr;
+	ComPtr<ID3D12Resource> ptr;
 	D3D12_RESOURCE_DESC m_Desc;
 };
 
