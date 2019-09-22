@@ -33,6 +33,8 @@ void MemoryManager::Destruct()
 
 Handle MemoryManager::Allocate(size_t size)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	for (uint32_t i = 0; i < MEMORY_POOL_NUM; ++i)
 	{
 		if (size <= MEMORY_POOL_CONFIG[i][0])

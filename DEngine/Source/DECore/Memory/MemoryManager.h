@@ -136,6 +136,7 @@ public:
 		if (!m_pInstance)
 		{
 			m_pInstance = reinterpret_cast<MemoryManager*>(std::malloc(sizeof(MemoryManager)));
+			new (m_pInstance) MemoryManager();
 			m_pInstance->ConstructDefaultPool();
 		}
 		return m_pInstance;
@@ -179,6 +180,8 @@ private:
 	static MemoryManager*					m_pInstance;	// singleton instance
 	void*									m_pRawHeapStart;	// Raw heap start address
 	MemoryPool*								m_pPool[MEMORY_POOL_NUM];	// All memory blocks' pools
+
+	std::mutex								m_mutex;
 };
 
 };
