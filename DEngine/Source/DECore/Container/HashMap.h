@@ -90,7 +90,7 @@ public:
 	MyHashMap(size_t size = 157)
 		:m_iArray(size)
 	{
-		m_iMapSize = size;
+		m_iMapSize = static_cast<uint32_t>(size);
 		m_iSize = 0;
 	}
 
