@@ -13,12 +13,11 @@ class SQT;
 
 constexpr float PI { 3.1415926535f };
 
-// 4x4 Matrix with SSE
+// row major matrix, requires pre-multiply
 class alignas(16) SIMDMatrix4
 {
 private:
 	__m128 _rows[4];
-	// column major matrix, requires post-multiply
 
 public:
 	friend class SIMDVector3;
@@ -33,7 +32,7 @@ public:
 	};
 
 	// Construct with given value
-	inline SIMDMatrix4(float other[4][4])
+	inline SIMDMatrix4(const float other[4][4])
 	{
 		_rows[0] = _mm_setr_ps(other[0][0], other[0][1], other[0][2], other[0][3]);
 		_rows[1] = _mm_setr_ps(other[1][0], other[1][1], other[1][2], other[1][3]);
@@ -42,7 +41,7 @@ public:
 	}
 
 	// Construct with given value, assume input is row major matrix
-	inline SIMDMatrix4(float other[16])
+	inline SIMDMatrix4(const float other[16])
 	{
 		_rows[0] = _mm_setr_ps(other[0], other[4], other[8], other[12]);
 		_rows[1] = _mm_setr_ps(other[1], other[5], other[9], other[13]);
@@ -51,7 +50,7 @@ public:
 	}
 
 	// Construct with given m128 data
-	inline SIMDMatrix4(__m128 data[4])
+	inline SIMDMatrix4(const __m128 data[4])
 	{
 		_rows[0] = data[0];
 		_rows[1] = data[1];
@@ -147,35 +146,13 @@ public:
 		_rows[3] = _mm_sub_ps(_rows[3], other._rows[3]);
 	}
 
-	// Pre-Multiply by another matrix, store the result back to this
-	inline void Multiply(const SIMDMatrix4& mat)
-	{
-		__m128 mat_rows0 = mat._rows[0];
-		__m128 mat_rows1 = mat._rows[1];
-		__m128 mat_rows2 = mat._rows[2];
-		__m128 mat_rows3 = mat._rows[3];
-		_MM_TRANSPOSE4_PS(mat_rows0, mat_rows1, mat_rows2, mat_rows3);
-
-		for (int i = 0; i < 4; ++i)
-		{
-			__m128 x = _mm_dp_ps(_rows[i], mat_rows0, 0xF1);
-			__m128 y = _mm_dp_ps(_rows[i], mat_rows1, 0xF2);
-			__m128 z = _mm_dp_ps(_rows[i], mat_rows2, 0xF4);
-			__m128 w = _mm_dp_ps(_rows[i], mat_rows3, 0xF8);
-
-			_rows[i] = _mm_add_ps(x, y);
-			_rows[i] = _mm_add_ps(_rows[i], z);
-			_rows[i] = _mm_add_ps(_rows[i], w);
-		}
-	}
-
 	// Overload * operator
-	inline SIMDMatrix4 operator*(const SIMDMatrix4& mat) const
+	inline SIMDMatrix4 operator*(const SIMDMatrix4& other) const
 	{
-		__m128 mat_rows0 = mat._rows[0];
-		__m128 mat_rows1 = mat._rows[1];
-		__m128 mat_rows2 = mat._rows[2];
-		__m128 mat_rows3 = mat._rows[3];
+		__m128 mat_rows0 = other._rows[0];
+		__m128 mat_rows1 = other._rows[1];
+		__m128 mat_rows2 = other._rows[2];
+		__m128 mat_rows3 = other._rows[3];
 		_MM_TRANSPOSE4_PS(mat_rows0, mat_rows1, mat_rows2, mat_rows3);
 
 		SIMDMatrix4 result;
@@ -194,12 +171,12 @@ public:
 	}
 
 	// Overload *= operator
-	inline void operator*=(const SIMDMatrix4& mat)
+	inline void operator*=(const SIMDMatrix4& other)
 	{
-		__m128 mat_rows0 = mat._rows[0];
-		__m128 mat_rows1 = mat._rows[1];
-		__m128 mat_rows2 = mat._rows[2];
-		__m128 mat_rows3 = mat._rows[3];
+		__m128 mat_rows0 = other._rows[0];
+		__m128 mat_rows1 = other._rows[1];
+		__m128 mat_rows2 = other._rows[2];
+		__m128 mat_rows3 = other._rows[3];
 		_MM_TRANSPOSE4_PS(mat_rows0, mat_rows1, mat_rows2, mat_rows3);
 
 		for (int i = 0; i < 4; ++i)
@@ -283,6 +260,12 @@ public:
 		_rows[3] = _mm_set_ps1(1.0f);
 		_rows[3] = _mm_insert_ps(_rows[3], _rows[3], 0x07);
 	}
+	static SIMDMatrix4 RotationX(float radian)
+	{
+		SIMDMatrix4 result;
+		result.CreateRotationX(radian);
+		return result;
+	}
 
 	// Set a rotation transformation about the Y axis given an angle in radian
 	inline void CreateRotationY(float radian)
@@ -296,6 +279,12 @@ public:
 		_rows[2] = _mm_setr_ps(-sinTheta, 0.0f, cosTheta, 0.0f);
 		_rows[3] = _mm_set_ps1(1.0f);
 		_rows[3] = _mm_insert_ps(_rows[3], _rows[3], 0x07);
+	}
+	static SIMDMatrix4 RotationY(float radian)
+	{
+		SIMDMatrix4 result;
+		result.CreateRotationY(radian);
+		return result;
 	}
 
 	// Set a rotation transformation about the Z axis given an angle in radian
@@ -334,6 +323,7 @@ public:
 
 	// Set a translation transformation given a vector
 	void CreateTranslation(const SIMDVector3& translation);
+	static SIMDMatrix4 Translation(const SIMDVector3& translation);
 
 	void SetPosition(const SIMDVector3& translation);
 
@@ -660,13 +650,19 @@ public:
 	// Transform the vector by a 4x4 Matrix, store result back to this
 	inline void TransformAsVector(const SIMDMatrix4& mat)
 	{
+		__m128 mat_rows0 = mat._rows[0];
+		__m128 mat_rows1 = mat._rows[1];
+		__m128 mat_rows2 = mat._rows[2];
+		__m128 mat_rows3 = mat._rows[3];
+		_MM_TRANSPOSE4_PS(mat_rows0, mat_rows1, mat_rows2, mat_rows3);
+
 		// Set w to 0.0f
 		_data = _mm_insert_ps(_data, _data, 0x08);
 
-		__m128 x = _mm_dp_ps(_data, mat._rows[0], 0xF1);
-		__m128 y = _mm_dp_ps(_data, mat._rows[1], 0xF2);
-		__m128 z = _mm_dp_ps(_data, mat._rows[2], 0xF4);
-		__m128 w = _mm_dp_ps(_data, mat._rows[3], 0xF8);
+		__m128 x = _mm_dp_ps(_data, mat_rows0, 0xF1);
+		__m128 y = _mm_dp_ps(_data, mat_rows1, 0xF2);
+		__m128 z = _mm_dp_ps(_data, mat_rows2, 0xF4);
+		__m128 w = _mm_dp_ps(_data, mat_rows3, 0xF8);
 
 		_data = _mm_insert_ps(_data, x, 0x00);
 		_data = _mm_insert_ps(_data, y, 0x50);
@@ -834,9 +830,9 @@ public:
 
 };
 
-typedef SIMDVector3 Vector3;
-typedef SIMDVector3 Vector4;
-typedef SIMDMatrix4 Matrix4;
-typedef SIMDQuaternion Quaternion;
+using Vector3 = SIMDVector3;
+using Vector4 = SIMDVector3;
+using Quaternion = SIMDQuaternion;
+using Matrix4 = SIMDMatrix4;
 
 }
