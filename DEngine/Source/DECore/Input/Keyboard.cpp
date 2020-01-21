@@ -11,4 +11,9 @@ void Keyboard::SetInputKey(uint64_t virtualKey, bool flag)
 	m_currState.Keys[virtualKey] = flag;
 }
 
+void Keyboard::Tick()
+{
+	m_lastState.Keys = m_currState.Keys;
+}
+
 };

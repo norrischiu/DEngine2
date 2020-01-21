@@ -25,7 +25,7 @@ public:
 	};
 
 	static void SetInputKey(uint64_t virtualKey, bool flag);
-
+	static void Tick();
 
 	static State m_currState;
 	static State m_lastState;

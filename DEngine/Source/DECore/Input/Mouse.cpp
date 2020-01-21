@@ -8,13 +8,18 @@ Mouse::State Mouse::m_lastState;
 
 void Mouse::SetMousePos(long x, long y)
 {
-	m_currState.cursorPos[0] = x;
-	m_currState.cursorPos[1] = y;
+	m_currState.cursorPos.x = x;
+	m_currState.cursorPos.y = y;
 }
 
 void Mouse::SetButton(int virtualKey, bool flag)
 {
 	m_currState.Buttons[virtualKey] = flag;
+}
+
+void Mouse::Tick()
+{
+	m_lastState = m_currState;
 }
 
 }

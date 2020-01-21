@@ -24,19 +24,19 @@ struct WindowsMsgHandler
 		}
 		else if (msg == WM_LBUTTONDOWN)
 		{
-			Mouse::SetButton(MK_LBUTTON, true);
+			Mouse::SetButton(VK_MOUSE_L, true);
 		}
 		else if (msg == WM_LBUTTONUP)
 		{
-			Mouse::SetButton(MK_LBUTTON, false);
+			Mouse::SetButton(VK_MOUSE_L, false);
 		}
 		else if (msg == WM_RBUTTONDOWN)
 		{
-			Mouse::SetButton(MK_RBUTTON, true);
+			Mouse::SetButton(VK_MOUSE_R, true);
 		}
 		else if (msg == WM_RBUTTONUP)
 		{
-			Mouse::SetButton(MK_RBUTTON, false);
+			Mouse::SetButton(VK_MOUSE_R, false);
 		}
 		//else if (msg >= WM_KEYFIRST && msg <= WM_KEYLAST)
 		else if (msg == WM_KEYDOWN)
