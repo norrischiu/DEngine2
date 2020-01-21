@@ -1,3 +1,5 @@
+#pragma pack_matrix( row_major )
+
 // cbuffer
 cbuffer VS_PER_OBJECT : register(b0)
 {
