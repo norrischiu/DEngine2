@@ -102,15 +102,15 @@ SIMDMatrix4 SIMDMatrix4::PerspectiveProjection(float fFOVy, float fAspectRatio, 
 	return mat;
 }
 
-void SIMDMatrix4::CreateOrthographicProj(uint32_t width, uint32_t height, float zNear, float zFar)
+void SIMDMatrix4::CreateOrthographicProj(int32_t width, int32_t height, float zNear, float zFar)
 {
 	_rows[0] = _mm_setr_ps(2.0f / width, 0.0f, 0.0f, 0.0f);
 	_rows[1] = _mm_setr_ps(0.0f, 2.0f / height, 0.0f, 0.0f);
-	_rows[2] = _mm_setr_ps(0.0f, 0.0f, 1.0f / (zFar - zNear), zNear / (zNear - zFar));
-	_rows[3] = _mm_setr_ps(0.0f, 0.0f, 0.0f, 1.0f);
+	_rows[2] = _mm_setr_ps(0.0f, 0.0f, 1.0f / (zFar - zNear), 0.0f);
+	_rows[3] = _mm_setr_ps(0.0f, 0.0f, -zNear / (zFar - zNear), 1.0f);
 }
 
-SIMDMatrix4 SIMDMatrix4::OrthographicProjection(uint32_t width, uint32_t height, float zNear, float zFar)
+SIMDMatrix4 SIMDMatrix4::OrthographicProjection(int32_t width, int32_t height, float zNear, float zFar)
 {
 	SIMDMatrix4 mat;
 	mat.CreateOrthographicProj(width, height, zNear, zFar);

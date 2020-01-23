@@ -345,9 +345,9 @@ public:
 	static SIMDMatrix4 PerspectiveProjection(float fFOVy, float fAspectRatio, float fNear, float fFar);
 
 	//Set a orthographic projection matrix // temp
-	void CreateOrthographicProj(uint32_t width, uint32_t height, float zNear, float zFar);
+	void CreateOrthographicProj(int32_t width, int32_t height, float zNear, float zFar);
 
-	static SIMDMatrix4 OrthographicProjection(uint32_t width, uint32_t height, float zNear, float zFar);
+	static SIMDMatrix4 OrthographicProjection(int32_t width, int32_t height, float zNear, float zFar);
 
 	// Inverts the matrix, store the result back to this
 	void Invert();
