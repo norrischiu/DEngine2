@@ -12,17 +12,12 @@ using Microsoft::WRL::ComPtr;
 namespace DE 
 {
 
-struct Texture
+class Texture
 {
 public:
 	Texture() = default;
-	virtual ~Texture()
-	{
-		if (ptr) 
-		{
-			ptr->Release();
-		}
-	}
+	Texture(const Texture&) = default;
+	~Texture() = default;
 
 	void Init(ID3D12Resource* resource)
 	{
@@ -63,7 +58,7 @@ public:
 		m_Desc = desc;
 	}
 
-	ID3D12Resource* ptr;
+	ComPtr<ID3D12Resource> ptr;
 	D3D12_RESOURCE_DESC m_Desc;
 	uint32_t m_iNumSubresources;
 };
@@ -119,13 +114,27 @@ public:
 		ptr->Unmap(0, &range);
 	}
 
+	void* Map(const size_t size = 0)
+	{
+		void* address = nullptr;
+		D3D12_RANGE range{ 0, size };
+		ptr->Map(0, &range, &address);
+		return address;
+	}
+
+	void Unmap(const size_t size = 0)
+	{
+		D3D12_RANGE range{ 0, size };
+		ptr->Unmap(0, &range);
+	}
+
 	ComPtr<ID3D12Resource> ptr;
 	D3D12_RESOURCE_DESC m_Desc;
 };
 
 struct VertexBuffer final : public Buffer
 {
-	void Init(const GraphicsDevice& device, uint32_t stride, std::size_t size)
+	void Init(const GraphicsDevice& device, uint32_t stride, uint32_t size)
 	{
 		Buffer::Init(device, size, D3D12_HEAP_TYPE_UPLOAD);
 
@@ -139,20 +148,15 @@ struct VertexBuffer final : public Buffer
 
 struct IndexBuffer final : public Buffer
 {
-	void Init(const GraphicsDevice& device, uint32_t stride, std::size_t size)
+	void Init(const GraphicsDevice& device, uint32_t stride, uint32_t size)
 	{
 		Buffer::Init(device, size, D3D12_HEAP_TYPE_UPLOAD);
 
 		view.BufferLocation = ptr->GetGPUVirtualAddress();
 		view.SizeInBytes = size;
-		view.Format = stride / 3 == sizeof(uint32_t) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+		view.Format = stride == sizeof(uint32_t) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 	}
 	D3D12_INDEX_BUFFER_VIEW view;
-};
-
-struct RenderTarget final : public Texture
-{
-	D3D12_CPU_DESCRIPTOR_HANDLE m_pDescriptor;
 };
 
 // for srv
@@ -185,10 +189,11 @@ struct ConstantDefinition
 struct SamplerDefinition
 {
 	uint32_t baseRegister;
+	D3D12_SHADER_VISIBILITY visibility;
 	D3D12_TEXTURE_ADDRESS_MODE addressMode;
 	D3D12_FILTER filter;
 	D3D12_COMPARISON_FUNC comparsionFunc;
-	D3D12_SHADER_VISIBILITY visibility;
+	float maxLOD = D3D12_FLOAT32_MAX;
 };
 
 class RootSignature final
@@ -230,7 +235,10 @@ public:
 	{
 		D3D12_ROOT_SIGNATURE_DESC desc;
 		D3D12_ROOT_PARAMETER rootParameters[16];
+		D3D12_DESCRIPTOR_RANGE range[16];
 		uint32_t index = 0;
+
+		assert(readOnlyResourceNum <= 16);
 
 		for (uint32_t i = 0; i < readOnlyResourceNum; ++i)
 		{
@@ -238,14 +246,13 @@ public:
 
 			rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 			rootParameters[index].ShaderVisibility = readOnlyResourceDefs[i].visibility;
-			D3D12_DESCRIPTOR_RANGE range = {};
-			range.NumDescriptors = readOnlyResourceDefs[i].num;
-			range.BaseShaderRegister = readOnlyResourceDefs[i].baseRegister;
-			range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			range.RegisterSpace = 0;
-			range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			range[i].NumDescriptors = readOnlyResourceDefs[i].num;
+			range[i].BaseShaderRegister = readOnlyResourceDefs[i].baseRegister;
+			range[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			range[i].RegisterSpace = 0;
+			range[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 			rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
-			rootParameters[index].DescriptorTable.pDescriptorRanges = &range;
+			rootParameters[index].DescriptorTable.pDescriptorRanges = &range[i];
 			index++;
 		}
 
@@ -274,7 +281,7 @@ public:
 			sampler.MaxAnisotropy = 1;
 			sampler.ComparisonFunc = samplerDef.comparsionFunc;
 			sampler.MinLOD = 0;
-			sampler.MaxLOD = D3D12_FLOAT32_MAX;
+			sampler.MaxLOD = samplerDef.maxLOD;
 
 			desc.pStaticSamplers = &sampler;
 			desc.NumStaticSamplers = 1;

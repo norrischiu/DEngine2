@@ -260,7 +260,10 @@ public:
 	GraphicsPipelineState& operator=(const GraphicsPipelineState&) = delete;
 	~GraphicsPipelineState()
 	{
-		ptr->Release();
+		if (ptr) 
+		{
+			ptr->Release();
+		}
 	}
 
 	void Init(const GraphicsDevice& device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
