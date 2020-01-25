@@ -4,11 +4,6 @@
 namespace DE
 {
 
-std::size_t Align(std::size_t size, uint32_t align)
-{
-	return size + align - 1 & ~(align - 1);
-}
-
 std::size_t CopyCommandList::SuballocateFromBuffer(std::size_t size, std::size_t alignment)
 {
 	return Align(size, alignment);
@@ -25,7 +20,7 @@ uint32_t CopyCommandList::Init(const GraphicsDevice& device)
 	return 0;
 }
 
-void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t height, uint32_t depth, DXGI_FORMAT format, Texture& destination)
+void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t height, uint32_t rowPitch, uint32_t depth, DXGI_FORMAT format, Texture& destination)
 {
 	uint32_t numComponent = 4;
 
@@ -34,7 +29,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	footprint.Width = width;
 	footprint.Height = height;
 	footprint.Depth = depth;
-	footprint.RowPitch = Align(width * sizeof(char) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	footprint.RowPitch = rowPitch;
 
 	uint8_t* ptr = source;
 	std::size_t offset = m_Offset;
@@ -47,7 +42,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	}
 
 	D3D12_TEXTURE_COPY_LOCATION dst;
-	dst.pResource = destination.ptr;
+	dst.pResource = destination.ptr.Get();
 	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 	dst.SubresourceIndex = 0; 
 	
@@ -62,7 +57,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = destination.ptr;
+	barrier.Transition.pResource = destination.ptr.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
@@ -74,12 +69,12 @@ void CopyCommandList::CopyTexture(Texture source, Texture destination)
 	for (uint32_t i = 0; i < source.m_iNumSubresources; ++i)
 	{
 		D3D12_TEXTURE_COPY_LOCATION src;
-		src.pResource = source.ptr;
+		src.pResource = source.ptr.Get();
 		src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		src.SubresourceIndex = i;
 
 		D3D12_TEXTURE_COPY_LOCATION dst;
-		dst.pResource = destination.ptr;
+		dst.pResource = destination.ptr.Get();
 		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		dst.SubresourceIndex = i;
 
