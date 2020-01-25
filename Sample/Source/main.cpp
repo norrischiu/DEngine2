@@ -3,6 +3,7 @@
 // Window
 #include <Windows.h>
 #include <d3d12.h>
+#include <tchar.h>
 // Cpp
 #include <sstream>
 #include <iostream>
@@ -11,12 +12,11 @@
 #include <DECore/DECore.h>
 #include <DECore/Windows/WindowsMsgHandler.h>
 #include <DERendering/DERendering.h>
+#include <DERendering/Imgui/imgui.h>
 
 #include "SampleModel.h"
 
 using namespace DE;
-
-constexpr const char* WINDOW_CLASS_NAME = "DESample";
 
 //-----------------------------------------------------------------------------
 // Name: MsgProc()
@@ -52,19 +52,27 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	UNREFERENCED_PARAMETER(hInst);
 
 	// Register the window class
-	WNDCLASSEX wc =
-	{
-		sizeof(WNDCLASSEX), CS_CLASSDC, MsgProc, 0L, 0L,
-		GetModuleHandle(NULL), NULL, NULL, NULL, NULL,
-		WINDOW_CLASS_NAME, NULL
-	};
+	WNDCLASSEX wc = {};
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.style = CS_CLASSDC;
+	wc.lpfnWndProc = MsgProc;
+	wc.hInstance = GetModuleHandle(NULL);
+	wc.lpszClassName = _T("namespaceDE");
 
 	RegisterClassEx(&wc);
 
 	// Create the application's window
-	HWND hWnd = CreateWindow(WINDOW_CLASS_NAME, WINDOW_CLASS_NAME,
-		WS_OVERLAPPEDWINDOW, 0, 0, 1024, 768,
-		NULL, NULL, wc.hInstance, NULL);
+	HWND hWnd = CreateWindow(wc.lpszClassName,
+							 __T("DE Sample"),
+							 WS_OVERLAPPEDWINDOW,
+							 100,
+							 100,
+							 1024,
+							 768,
+							 NULL,
+							 NULL,
+							 wc.hInstance,
+							 NULL);
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	UpdateWindow(hWnd);
@@ -83,8 +91,15 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	desc.windowWidth_ = 1024;
 	desc.windowHeight_ = 768;
 	desc.backBufferCount_ = 2;
-	RenderDevice* renderDevice = new RenderDevice();
+	RenderDevice *renderDevice = new RenderDevice();
 	renderDevice->Init(desc);
+
+	// init imgui setup
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	RECT rect;
+	::GetClientRect(hWnd, &rect);
+	io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
 	SampleModel sample;
 	sample.Setup(renderDevice);
@@ -121,12 +136,27 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 		auto end = std::chrono::high_resolution_clock::now();
 		if (elaspedTime >= 1.0f / FPS)
 		{
+			// imgui state set
+			ImGuiIO &io = ImGui::GetIO();
+			if (::GetForegroundWindow() == hWnd)
+			{
+				RECT rect;
+				::GetClientRect(hWnd, &rect);
+				io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+				io.MousePos = ImVec2((float)Mouse::m_currState.cursorPos.x, (float)(Mouse::m_currState.cursorPos.y));
+				printf("%f\n", io.MousePos.y);
+				io.MouseDown[0] = Mouse::m_currState.Buttons[0];
+				io.MouseDown[1] = Mouse::m_currState.Buttons[1];
+			}
+			ImGui::NewFrame();
+
+			// app update
 			sample.Update(*renderDevice, elaspedTime);
 			renderDevice->ExecuteAndPresent();
 
 			elaspedTime = 0.0f;
 			start = end;
-			
+
 			// update input state
 			Keyboard::Tick();
 			Mouse::Tick();
@@ -140,6 +170,6 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 	JobScheduler::Instance()->ShutDown();
 
-	UnregisterClass(WINDOW_CLASS_NAME, wc.hInstance);
+	UnregisterClass(wc.lpszClassName, wc.hInstance);
 	return 0;
 }
