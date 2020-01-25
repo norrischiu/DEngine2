@@ -15,6 +15,7 @@ xcopy /y ..\DTools\External\Assimp\bin\x64\assimp-vc141-mt.dll  ..\DTools\Bin\
 
 echo Building assets...
 ..\DTools\Bin\DExporterRelease.exe model Assets\Models\ShaderBall\shader_ball.obj Bin\Assets\ ShaderBall
+..\DTools\Bin\DExporterRelease.exe hdr Assets\Textures\Gym\gym_entrance_1k.hdr Bin\Assets\ ShaderBall
 
 echo Done
 
