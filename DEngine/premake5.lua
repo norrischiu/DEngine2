@@ -5,8 +5,6 @@ project "DECore"
 	defines {"_CRT_SECURE_NO_WARNINGS"}
 	includedirs { "Source/", "Source/DECore/" }
 	buildoptions { "/sdl" } -- code generation for uninitialized variable
-	pchheader "DECore/DECore.h"
-	pchsource "Source/DECore/DECore.cpp"
 
 	files 
 	{ 
@@ -34,9 +32,6 @@ project "DERendering"
 	includedirs { "Source/", "Source/DERendering/" }
 	buildoptions { "/sdl" } -- code generation for uninitialized variable
 	links { "DECore", "D3d12", "DXGI" }
-	pchheader "DERendering/DERendering.h"
-	pchsource "Source/DERendering/DERendering.cpp"
-
 	
 	files 
 	{ 
@@ -63,8 +58,6 @@ project "DEGame"
 	defines {"_CRT_SECURE_NO_WARNINGS"}
 	includedirs {  "Source/", "Source/DEGame/" }
 	buildoptions { "/sdl" } -- code generation for uninitialized variable
-	pchheader "DEGame/DEGame.h"
-	pchsource "Source/DEGame/DEGame.cpp"
 	links { "DECore", "DERendering" }
 
 	files 
