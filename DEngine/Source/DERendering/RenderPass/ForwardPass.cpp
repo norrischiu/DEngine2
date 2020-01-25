@@ -7,7 +7,7 @@
 namespace DE
 {
 
-void ForwardPass::Setup(RenderDevice& renderDevice)
+void ForwardPass::Setup(RenderDevice* renderDevice, Texture& irradianceMap)
 {
 	Vector<char> vs;
 	Vector<char> ps;
@@ -19,14 +19,22 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 	HRESULT hr;
 
 	{
-		ConstantDefinition constants[2] = { {0, D3D12_SHADER_VISIBILITY_VERTEX}, {1, D3D12_SHADER_VISIBILITY_PIXEL} };
-		ReadOnlyResourceDefinition readOnly = { 0, 5, D3D12_SHADER_VISIBILITY_PIXEL };
-		SamplerDefinition sampler = {0, D3D12_TEXTURE_ADDRESS_MODE_WRAP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
+		ConstantDefinition constants[2] = 
+		{ 
+			{0, D3D12_SHADER_VISIBILITY_VERTEX}, 
+			{1, D3D12_SHADER_VISIBILITY_PIXEL} 
+		};
+		ReadOnlyResourceDefinition readOnly[2] = 
+		{ 
+			{ 0, 5, D3D12_SHADER_VISIBILITY_PIXEL }, 
+			{ 5, 1, D3D12_SHADER_VISIBILITY_PIXEL } 
+		};
+		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
 
 		data.rootSignature.Add(constants, 2);
-		data.rootSignature.Add(&readOnly, 1);
+		data.rootSignature.Add(readOnly, 2);
 		data.rootSignature.Add(sampler);
-		data.rootSignature.Finalize(renderDevice.m_Device);
+		data.rootSignature.Finalize(renderDevice->m_Device);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -70,26 +78,29 @@ void ForwardPass::Setup(RenderDevice& renderDevice)
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		desc.DepthStencilState = depthStencilDesc;
 
-		data.pso.Init(renderDevice.m_Device, desc);
+		data.pso.Init(renderDevice->m_Device, desc);
 	}
 	{
 		D3D12_CLEAR_VALUE clearValue = {};
 		clearValue.DepthStencil.Depth = 1.0f;
 		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
-		data.depth.Init(renderDevice.m_Device, 1024, 768, 1, 1, DXGI_FORMAT_D32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &clearValue);
+		data.depth.Init(renderDevice->m_Device, 1024, 768, 1, 1, DXGI_FORMAT_D32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &clearValue);
 	}
 	{
-		data.vsCbv.Init(renderDevice.m_Device, 256);
+		data.vsCbv.Init(renderDevice->m_Device, 256);
 	}
 	{
-		data.psCbv.Init(renderDevice.m_Device, 256);
+		data.psCbv.Init(renderDevice->m_Device, 256);
 		PerLightCBuffer light;
 		light.lightPos = Vector3(1.0f, 1.0f, 0.0f);
 		light.eyePos = Vector3(2.0f, 2.0f, -3.0f);
 		data.psCbv.buffer.Update(&light, sizeof(light));
 	}
+	{
+		data.irradianceMap = irradianceMap;
+	}
 
-	data.pDevice = &renderDevice;
+	data.pDevice = renderDevice;
 }
 
 void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
@@ -104,7 +115,8 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
 
 	float clearColor[] = { 0.5f, 0.5f, 0.5f, 0.1f };
-	commandList.SetRenderTargetDepth(data.pDevice->GetBackBuffer(data.backBufferIndex), 1, clearColor, &data.depth, 1.0f);
+	RenderTargetView::Desc rtv { data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0 };
+	commandList.SetRenderTargetDepth(&rtv, 1, &data.depth, ClearFlag::Color | ClearFlag::Depth, clearColor, 1.0f);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -121,13 +133,12 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 		uint32_t materialID = mesh.m_MaterialID;
 
 		commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
+		commandList.SetReadOnlyResource(1, &data.irradianceMap, 1);
 		VertexBuffer vertexBuffers[] = { mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords };
 		commandList.SetVertexBuffers(vertexBuffers, 4);
 		commandList.SetIndexBuffer(mesh.m_Indices);
 		commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
 	}
-
-	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 	data.backBufferIndex = 1 - data.backBufferIndex;
 }

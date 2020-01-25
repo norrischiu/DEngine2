@@ -15,6 +15,7 @@ class ForwardPass
 		GraphicsPipelineState pso;
 		RootSignature rootSignature;
 		Texture depth;
+		Texture irradianceMap;
 		uint32_t backBufferIndex = 0;
 
 		ConstantBufferView vsCbv;
@@ -38,8 +39,14 @@ class ForwardPass
 public:
 	ForwardPass() = default;
 
-	void Setup(RenderDevice& renderDevice);
+	void Setup(RenderDevice* renderDevice, Texture& irradianceMap);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
+
+	// temp
+	Texture* GetDepth()
+	{
+		return &data.depth;
+	}
 
 private:
 	Data data;
