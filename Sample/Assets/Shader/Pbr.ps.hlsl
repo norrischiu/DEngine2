@@ -22,6 +22,7 @@ Texture2D<float3> NormalTex : register(t1);
 Texture2D<float3> MetallicTex : register(t2);
 Texture2D<float3> RoughnessTex : register(t3);
 Texture2D<float3> AOTex : register(t4);
+TextureCube IrradianceMap : register(t5);
 
 sampler SurfaceSampler : register(s0);
 
@@ -71,7 +72,9 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	float NdotL = max(dot(N, L), 0.0);
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
-	float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo * ao;
+	float3 irradiance = IrradianceMap.Sample(SurfaceSampler, N).rgb;
+	float3 diffuse = irradiance * albedo;
+	float3 ambient = kD * diffuse * ao;
 	float3 color = ambient + Lo;
 
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
