@@ -41,9 +41,9 @@ project "Sample"
 --		objdir "Intermediate/Release"
 
 	filter { 'files:**.vs.hlsl' }
-		buildcommands 'dxc.exe -Zi -E main -Od -T vs_5_0 -Fo $(OutputPath)../Assets/Shaders/%(Filename).cso %(FullPath)'
+		buildcommands 'fxc.exe -Zi -E main -Od -T vs_5_0 -Fo $(OutputPath)../Assets/Shaders/%(Filename).cso %(FullPath)'
 		buildoutputs '$(OutputPath)../Assets/Shaders/%(Filename).cso'
 	filter { 'files:**.ps.hlsl' }
-		buildcommands 'dxc.exe -Zi -E main -Od -T ps_5_0 -Fo $(OutputPath)../Assets/Shaders/%(Filename).cso %(FullPath)'
+		buildcommands 'fxc.exe -Zi -E main -Od -T ps_5_0 -Fo $(OutputPath)../Assets/Shaders/%(Filename).cso %(FullPath)'
 		buildoutputs '$(OutputPath)../Assets/Shaders/%(Filename).cso'
 	filter {}
