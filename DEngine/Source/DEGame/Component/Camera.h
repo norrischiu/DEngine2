@@ -23,44 +23,48 @@ public:
 	void ParseInput(float dt)
 	{
 		// keyboard
+		Vector3 translation = {};
 		for (int key = 0; key < Keyboard::KEY_NUM; ++key)
 		{
 			if (Keyboard::m_currState.Keys[key])
 			{
 				if (key == VK_W)
 				{
-					Vector3 vForward = DE::Vector3::UnitZ;
-					m_vPos += (vForward * dt);
-					m_vLookAt += (vForward * dt);
+					Vector3 forward = -m_mView.GetForward(); // view matrix is inverted
+					translation += forward * dt;
 				}
 				if (key == VK_S)
 				{
-					Vector3 vBack = DE::Vector3::NegativeUnitZ;
-					m_vPos += (vBack * dt);
-					m_vLookAt += (vBack * dt);
+					Vector3 back = m_mView.GetForward();
+					translation += back * dt;
 				}
 				if (key == VK_A)
 				{
-					Vector3 vLeft = DE::Vector3::NegativeUnitX;
-					m_vPos += (vLeft * dt);
-					m_vLookAt += (vLeft * dt);
+					Vector3 left = m_mView.GetRight();
+					translation += left * dt;
 				}
 				if (key == VK_D)
 				{
-					Vector3 vRight = DE::Vector3::UnitX;
-					m_vPos += (vRight * dt);
-					m_vLookAt += (vRight * dt);
+					Vector3 right = -m_mView.GetRight();
+					translation += right * dt;
 				}
 			}
-		}
-		m_mView = Matrix4::LookAtMatrix(m_vPos, m_vLookAt, m_vUp);
+		};
 
 		// mouse
+		float yaw = 0, pitch = 0;
 		if (Mouse::m_currState.Buttons[0])
+		{	
+			auto deltaX = Mouse::m_currState.cursorPos.x - Mouse::m_lastState.cursorPos.x;
+			pitch = deltaX * pitchSpeed * dt;
+		}		
+		if (Mouse::m_currState.Buttons[1])
 		{
-			Mouse::m_lastState.cursorPos[0];
-			Mouse::m_currState.cursorPos[0];
+			auto deltaY = Mouse::m_currState.cursorPos.y - Mouse::m_lastState.cursorPos.y;
+			yaw = deltaY * yawSpeed * dt;
 		}
+
+		m_mView *= Matrix4::Translation(translation) * Matrix4::RotationX(yaw) * Matrix4::RotationY(pitch);
 	}
 
 	// view matrix: world to camera
@@ -75,17 +79,22 @@ public:
 		return m_mPerspective;
 	}
 
-	Matrix4 GetPV() const
+	Matrix4 GetCameraToScreen() const
 	{
-		return m_mPerspective * m_mView;
+		return m_mView * m_mPerspective;
 	}
 
+public:
+	float yawSpeed = 0.5f; // pitch
+	float pitchSpeed = 0.5f; // yaw
+	float translateSpeed = 1.0f;
+
 private:
-	Vector3						m_vPos;
-	Vector3						m_vLookAt;
-	Vector3						m_vUp;
-	Matrix4						m_mPerspective;
-	Matrix4						m_mView;
+	Vector3 m_vPos;
+	Vector3 m_vLookAt;
+	Vector3 m_vUp;
+	Matrix4 m_mPerspective;
+	Matrix4 m_mView;
 };
 
 };
