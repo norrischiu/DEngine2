@@ -57,7 +57,8 @@ void TextureLoader::Load(Texture& texture, const char* path)
 			assert(false);
 		}
 		texture.Init(m_pRenderDevice->m_Device, width, height, 1, 1, format, D3D12_HEAP_TYPE_DEFAULT);
-		commandList.UploadTexture(reinterpret_cast<uint8_t*>(data), width, height, 1, format, texture);
+		uint32_t rowPitch = Align(width * sizeof(char) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		commandList.UploadTexture(reinterpret_cast<uint8_t*>(data), width, height, rowPitch, 1, format, texture);
 
 		delete data;
 	}
