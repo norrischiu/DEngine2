@@ -35,10 +35,20 @@ void DrawCommandList::SetViewportAndScissorRect(float x, float y, float width, f
 	m_CommandList.ptr->RSSetViewports(1, &viewport);
 	
 	D3D12_RECT scissorRect;
-	scissorRect.left = x;
-	scissorRect.top = y;
-	scissorRect.right = x + width;
-	scissorRect.bottom = y + height;
+	scissorRect.left = static_cast<int64_t>(x);
+	scissorRect.top = static_cast<int64_t>(y);
+	scissorRect.right = static_cast<int64_t>(x + width);
+	scissorRect.bottom = static_cast<int64_t>(y + height);
+	m_CommandList.ptr->RSSetScissorRects(1, &scissorRect);
+}
+
+void DrawCommandList::SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom)
+{
+	D3D12_RECT scissorRect;
+	scissorRect.left = left;
+	scissorRect.top = top;
+	scissorRect.right = right;
+	scissorRect.bottom = bottom;
 	m_CommandList.ptr->RSSetScissorRects(1, &scissorRect);
 }
 
@@ -83,7 +93,7 @@ void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv)
 	m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress());
 }
 
-void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num)
+void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num, D3D12_SRV_DIMENSION viewDimension /*= D3D12_SRV_DIMENSION_TEXTURE2D*/)
 {
 	assert(m_pCurrSignature);
 	assert(index < m_pCurrSignature->readOnlyResourceNum);
@@ -93,19 +103,19 @@ void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uin
 	for (uint32_t i = 0; i < num; ++i)
 	{
 		ShaderResourceView srv;
-		srv.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, textures[i]);
+		srv.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, textures[i], viewDimension);
 	}
 	m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
 }
 
-void DrawCommandList::SetRenderTargetDepth(Texture* renderTarget, uint32_t num, float* clearColor, Texture* depth, float clearDepth)
+void DrawCommandList::SetRenderTargetDepth(RenderTargetView::Desc* renderTarget, uint32_t num, Texture* depth, uint32_t flag /*= 0*/, float* clearColor /*= nullptr*/, float clearDepth /*= 0.0f*/)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE descriptors = m_RtvSubHeap.current;
 	for (uint32_t i = 0; i < num; ++i)
 	{
-		RenderTargetView rtv;
-		rtv.Init(m_pDevice->m_Device, m_RtvSubHeap, renderTarget[i]);
-		if (clearColor != nullptr) {
+		RenderTargetView::Allocate(m_pDevice->m_Device, m_RtvSubHeap, renderTarget[i]);
+		if (flag & ClearFlag::Color) 
+		{
 			m_CommandList.ptr->ClearRenderTargetView(descriptors, clearColor, 0, nullptr);
 			clearColor += 4;
 		}
@@ -115,7 +125,10 @@ void DrawCommandList::SetRenderTargetDepth(Texture* renderTarget, uint32_t num, 
 		D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor = m_DsvSubHeap.current;
 		DepthStencilView dsv;
 		dsv.Init(m_pDevice->m_Device, m_DsvSubHeap, *depth);
-		m_CommandList.ptr->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, clearDepth, 0, 0, nullptr);
+		if (flag & ClearFlag::Depth) 
+		{
+			m_CommandList.ptr->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, clearDepth, 0, 0, nullptr);
+		}
 		
 		m_CommandList.ptr->OMSetRenderTargets(num, &descriptors, true, &depthDescriptor);
 	}
@@ -135,12 +148,22 @@ void DrawCommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanc
 	m_CommandList.ptr->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
 }
 
+void DrawCommandList::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexOffset, uint32_t instanceOffset)
+{
+	for (const auto& barrier : m_Barriers) {
+		m_CommandList.ptr->ResourceBarrier(1, &barrier);
+	}
+	m_Barriers.clear();
+
+	m_CommandList.ptr->DrawInstanced(vertexCount, instanceCount, vertexOffset, instanceOffset);
+}
+
 void DrawCommandList::ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = texture.ptr;
+	barrier.Transition.pResource = texture.ptr.Get();
 	barrier.Transition.StateBefore = before;
 	barrier.Transition.StateAfter = after;
 
