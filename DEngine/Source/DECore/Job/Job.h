@@ -1,8 +1,10 @@
 #pragma once
 
-#include <DECore/DECore.h>
+// Cpp
 #include <atomic>
 #include <new>
+// Engine
+#include <DECore/DECore.h>
 
 namespace DE
 {

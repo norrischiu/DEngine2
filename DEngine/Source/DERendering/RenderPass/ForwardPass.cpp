@@ -1,8 +1,11 @@
 #include <DERendering/DERendering.h>
+#include <DERendering/Device/RenderDevice.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
+#include <DECore/Job/JobScheduler.h>
 #include <DECore/FileSystem/FileLoader.h>
+#include <DECore/Math/simdmath.h>
 
 namespace DE
 {

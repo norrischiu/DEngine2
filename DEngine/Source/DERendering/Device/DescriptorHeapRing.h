@@ -1,6 +1,6 @@
 #pragma once
 
-#include <DERendering/DERendering.h>
+// Engine
 #include <DERendering/DataType/GraphicsNativeType.h>
 
 namespace DE

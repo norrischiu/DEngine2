@@ -34,6 +34,12 @@ struct Material final
 	Material(const Material&) = delete;
 	Material& operator=(const Material&) = delete;
 	Texture m_Textures[5];
+	// 8 float
+	float3 albedo;
+	float metallic;
+	float roughness;
+	float ao;
+	float2 padding;
 };
 
 /**	@brief Contains vertex and index buffer of a mesh*/

@@ -1,14 +1,13 @@
 // RenderDevice.cpp:
 
-// Windows
-#include <d3d12.h>
-#include <dxgi1_4.h>
+// Cpp
+#include <assert.h>
 // Engine
 #include <DERendering/DERendering.h>
-#include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/Device/CopyCommandList.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/Framegraph/Framegraph.h>
+#include <DECore/Container/Vector.h>
 #include "RenderDevice.h"
 
 namespace DE 

@@ -144,7 +144,6 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 				::GetClientRect(hWnd, &rect);
 				io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 				io.MousePos = ImVec2((float)Mouse::m_currState.cursorPos.x, (float)(Mouse::m_currState.cursorPos.y));
-				printf("%f\n", io.MousePos.y);
 				io.MouseDown[0] = Mouse::m_currState.Buttons[0];
 				io.MouseDown[1] = Mouse::m_currState.Buttons[1];
 			}

@@ -1,11 +1,12 @@
 #pragma once
 
+// Engine
 #include <DECore/Container/Vector.h>
+#include <DECore/Job/Job.h>
 
 namespace DE
 {
 
-struct Job;
 class JobWorker;
 
 class DllExport JobScheduler
