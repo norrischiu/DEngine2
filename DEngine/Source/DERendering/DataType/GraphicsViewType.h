@@ -2,6 +2,8 @@
 
 // Window
 #include <d3d12.h>
+// Cpp
+#include <assert.h>
 // Engine
 #include <DERendering/DataType/GraphicsResourceType.h>
 

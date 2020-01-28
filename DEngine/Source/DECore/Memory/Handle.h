@@ -2,11 +2,11 @@
 #ifndef HANDLE_H_
 #define HANDLE_H_
 
-// Engine include
-#include "MemoryManager.h"
-
-// C++ include
+// Cpp
 #include <stdint.h>
+// Engine
+#include "MemoryManager.h"
+#include <DECore/DECore.h>
 
 namespace DE
 {

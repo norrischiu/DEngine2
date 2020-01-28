@@ -5,7 +5,6 @@
 #include <Windows.h>
 // Engine
 #include <DECore/DECore.h>
-#include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
 #include <DERendering/Device/DescriptorHeapRing.h>

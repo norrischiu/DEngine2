@@ -1,6 +1,7 @@
 #pragma once
 
 // Engine
+#include <DECore/DECore.h>
 #include <DECore/Container/Vector.h>
 #include <DECore/Job/Job.h>
 
