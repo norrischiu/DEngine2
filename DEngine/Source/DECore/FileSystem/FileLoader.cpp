@@ -6,6 +6,7 @@
 #include <DECore/Job/JobScheduler.h>
 // Cpp
 #include <fstream>
+#include <assert.h>
 
 namespace DE
 {

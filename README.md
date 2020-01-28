@@ -6,7 +6,6 @@ Created for quick engine and graphics features protyping on Windows only. A spir
 - Pool memory allocator
 - Handle based container
 - SIMD maths library
-- Framegraph (WIP)
 - PBR render pipeline
 - .obj assets loader
 

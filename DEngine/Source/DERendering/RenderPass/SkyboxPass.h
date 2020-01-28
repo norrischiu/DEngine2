@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DERendering/DERendering.h>
+#include <DERendering/Device/RenderDevice.h>
 
 namespace DE
 {

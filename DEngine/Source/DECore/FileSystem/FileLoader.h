@@ -1,9 +1,13 @@
 #pragma once
 
-#include <DECore/DECore.h>
+// Engine
+#include <DECore/Container/Vector.h>
 
 namespace DE
 {
+
+struct Job;
+
 class FileLoader final
 {
 public:

@@ -1,10 +1,12 @@
 #include <DERendering/DERendering.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/DataType/GraphicsResourceType.h>
 #include "CopyCommandList.h"
 
 namespace DE
 {
 
-std::size_t CopyCommandList::SuballocateFromBuffer(std::size_t size, std::size_t alignment)
+size_t CopyCommandList::SuballocateFromBuffer(size_t size, size_t alignment)
 {
 	return Align(size, alignment);
 }
@@ -32,7 +34,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	footprint.RowPitch = rowPitch;
 
 	uint8_t* ptr = source;
-	std::size_t offset = m_Offset;
+	size_t offset = m_Offset;
 	for (uint32_t y = 0; y < height; y++)
 	{
 		uint8_t* pScan = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(m_pUploadBufferPtr) + m_Offset);

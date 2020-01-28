@@ -7,14 +7,15 @@
 #include <DECore/DECore.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
+#include <DERendering/DataType/GraphicsViewType.h>
 #include <DERendering/Device/DescriptorHeapRing.h>
+#include <DECore/Container/Vector.h>
 // C++
 #include <mutex>
 
 namespace DE
 {
 
-class Framegraph;
 class CopyCommandList;
 class DrawCommandList;
 
@@ -48,12 +49,6 @@ public:
 	/** @brief Reset any memory pointer or state */
 	void Reset();
 
-	/** @brief This Execute the command lists recorded in framegraph
-	*
-	*	@param framegraph
-	*/
-	void Render(const Framegraph& framegraph);
-
 	/** @brief Submit command lists to a internal list
 	*
 	*	@param commandLists
@@ -69,10 +64,10 @@ public:
 	/** @brief Wait for render queue to be idle */
 	void WaitForIdle();
 
-	/** @brief This function will execute the command lists recorded in framegraph
+	/** @brief Get back buffer
 	*
 	*	@param index index to the swapchain
-	*	@return a weak pointer to the back buffer Texture object
+	*	@return a pointer to the back buffer Texture object
 	*/
 	Texture* GetBackBuffer(uint32_t index);
 

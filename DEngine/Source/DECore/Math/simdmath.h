@@ -5,6 +5,7 @@
 #include <smmintrin.h> // intrinics
 #include <math.h> // sin cos
 #include <limits>
+#include <stdint.h>
 
 namespace DE
 {

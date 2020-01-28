@@ -3,6 +3,7 @@
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
 #include <DECore/FileSystem/FileLoader.h>
+#include <DECore/Job/JobScheduler.h>
 
 namespace DE
 {

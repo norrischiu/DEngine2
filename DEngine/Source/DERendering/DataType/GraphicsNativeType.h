@@ -6,6 +6,8 @@
 #include <wrl/client.h>
 // Engine
 #include <DERendering/DERendering.h>
+// Cpp
+#include <assert.h>
 
 using Microsoft::WRL::ComPtr;
 

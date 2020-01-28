@@ -1,5 +1,5 @@
-#include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
+#include <DERendering/Device/RenderDevice.h>
 #include "DrawCommandList.h"
 
 namespace DE

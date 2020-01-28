@@ -1,6 +1,12 @@
 #pragma once
 
+// Windows
+#include <d3d12.h>
+// Engine
 #include <DERendering/DERendering.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/DataType/GraphicsResourceType.h>
+
 namespace DE
 {
 
@@ -23,11 +29,11 @@ public:
 
 private:
 
-	std::size_t SuballocateFromBuffer(std::size_t size, std::size_t alignment);
+	size_t SuballocateFromBuffer(size_t size, size_t alignment);
 
 	Buffer m_UploadBuffer;
 	void* m_pUploadBufferPtr;
-	std::size_t m_Offset;
+	size_t m_Offset;
 
 	CommandList m_CommandList;
 };

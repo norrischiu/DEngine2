@@ -1,11 +1,16 @@
 #pragma once
 
+// Windows
 #include <d3d12.h>
+// Engine
 #include <DERendering/DERendering.h>
-
+#include <DERendering/DataType/GraphicsViewType.h>
+#include <DECore/Container/Vector.h>
 
 namespace DE
 {
+
+class RenderDevice;
 
 enum ClearFlag
 {
@@ -55,7 +60,7 @@ public:
 	RenderDevice* m_pDevice;
 	GraphicsPipelineState* m_pCurrPipeline;
 	RootSignature* m_pCurrSignature;
-	std::vector<D3D12_RESOURCE_BARRIER> m_Barriers;
+	Vector<D3D12_RESOURCE_BARRIER> m_Barriers;
 };
 
 }

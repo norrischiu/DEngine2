@@ -3,7 +3,8 @@
 #define CAMERA_COMPONENT_H_
 
 #include "Component.h"
-#include <DECore/DEcore.h>
+#include <DECore/Math/simdmath.h>
+#include <DECore/Math/Frustum.h>
 
 namespace DE
 {

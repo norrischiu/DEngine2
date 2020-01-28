@@ -1,11 +1,9 @@
 // Handle.h: the struct for a handle (array index) to reference memory location
-#ifndef HANDLE_H_
-#define HANDLE_H_
+#pragma once
 
 // Cpp
 #include <stdint.h>
 // Engine
-#include "MemoryManager.h"
 #include <DECore/DECore.h>
 
 namespace DE
@@ -42,11 +40,7 @@ struct DllExport Handle
 	*	--- Parameters:
 	*	@ size: size of the memory needed
 	********************************************************************************/
-	Handle(size_t size)
-		: m_counter(1)
-	{
-		*this = MemoryManager::GetInstance()->Allocate(size);
-	};
+	Handle(size_t size);
 
 	/********************************************************************************
 	*	--- Constructor:
@@ -76,12 +70,7 @@ struct DllExport Handle
 	*	--- Return:
 	*	@ void
 	********************************************************************************/
-	void Set(size_t size)
-	{
-		assert(m_counter == 0);
-		m_counter++;
-		*this = MemoryManager::GetInstance()->Allocate(size);
-	}
+	void Set(size_t size);
 
 	/********************************************************************************
 	*	--- Function:
@@ -111,10 +100,7 @@ struct DllExport Handle
 	*	--- Return:
 	*	@ void*: memory address that this Handle referring to
 	********************************************************************************/
-	inline void* Raw() const
-	{
-		return MemoryManager::GetInstance()->GetMemoryAddressFromHandle(*this);
-	}
+	void* Raw() const;
 
 	/********************************************************************************
 	*	--- Function:
@@ -129,20 +115,11 @@ struct DllExport Handle
 	*	--- Return:
 	*	@ void
 	********************************************************************************/
-	inline void Free()
-	{
-		if (m_counter == 1)
-		{
-			MemoryManager::GetInstance()->Free(*this);
-		}
-		m_counter--;
-	}
+	void Free();
 
 	uint32_t							m_poolIndex : 5;		// pool index occupying 5 bits
-	uint32_t							m_blockIndex : 16;		// pool index occupying 16 bits
+	uint32_t							m_blockIndex : 16;		// block index occupying 16 bits
 	uint32_t							m_counter : 11;		// counter occupying 11 bits
 };
 
 };
-
-#endif

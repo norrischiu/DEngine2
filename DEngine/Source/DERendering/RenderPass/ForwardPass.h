@@ -1,9 +1,8 @@
 #pragma once
 
 // Engine
-#include <DERendering/DataType/GraphicsNativeType.h>
-#include <DERendering/DataType/GraphicsViewType.h>
-#include <DERendering/DataType/GraphicsResourceType.h>
+#include <DERendering/Device/RenderDevice.h>
+#include <DECore/Math/simdmath.h>
 
 namespace DE
 {

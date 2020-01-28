@@ -3,6 +3,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/FrameData/MaterialMeshBatcher.h>
 #include <DECore/Container/Vector.h>
+#include <DECore/Math/simdmath.h>
 
 namespace DE
 {

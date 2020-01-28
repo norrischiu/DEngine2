@@ -13,7 +13,6 @@
 namespace DE
 {
 class RenderDevice;
-class Framegraph;
 }
 
 class SampleModel

@@ -1,5 +1,4 @@
 #include <DERendering/DERendering.h>
-#include <DERendering/Device/RenderDevice.h>
 #include <DERendering/DataType/GraphicsDataType.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/Device/DrawCommandList.h>

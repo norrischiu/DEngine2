@@ -9,9 +9,10 @@
 #include <iostream>
 #include <chrono>
 // Engine
-#include <DECore/DECore.h>
+#include <DECore/Memory/MemoryManager.h>
+#include <DECore/Job/JobScheduler.h>
 #include <DECore/Windows/WindowsMsgHandler.h>
-#include <DERendering/DERendering.h>
+#include <DERendering/Device/RenderDevice.h>
 #include <DERendering/Imgui/imgui.h>
 
 #include "SampleModel.h"

@@ -2,18 +2,15 @@
 #ifndef MEMORYMANAGER_H_
 #define MEMORYMANAGER_H_
 
-// Engine include
-#include "MemoryPool.h"
-
-// C++ include
+// Cpp
 #include <iostream>
 #include <mutex>
+// Engine
+#include "MemoryPool.h"
+#include "Handle.h"
 
 namespace DE
 {
-
-// Engine include
-struct Handle;
 
 const uint32_t MEMORY_POOL_NUM = 23;		// memory pool configuration: number of pool
 const uint32_t MEMORY_POOL_CONFIG[][2] =	// memory pool configuration: block size and nubmer of block pair

@@ -1,15 +1,17 @@
 #pragma once
 
+// Cpp
 #include <stdint.h>
 #include <thread>
 #include <array>
 #include <atomic>
+// Engine
+#include <DECore/Job/Job.h>
 
 namespace DE
 { 
 
 class JobScheduler;
-struct Job;
 
 constexpr uint32_t DEFAULT_JOB_QUEUE_SIZE = 4096;
 constexpr uint32_t DEFAULT_JOB_QUEUE_SIZE_MASK = DEFAULT_JOB_QUEUE_SIZE - 1;

@@ -2,6 +2,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/Device/RenderDevice.h>
 #include <DERendering/Device/CopyCommandList.h>
+#include <DERendering/DataType/GraphicsDataType.h>
 #include <DECore/Container/Vector.h>
 #include <DECore/Job/JobScheduler.h>
 

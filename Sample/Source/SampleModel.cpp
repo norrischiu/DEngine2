@@ -7,6 +7,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/Device/RenderDevice.h>
 #include <DERendering/Device/CopyCommandList.h>
+#include <DERendering/DataType/GraphicsDataType.h>
 #include <DERendering/Imgui/imgui.h>
 #include <DEGame/Loader/SceneLoader.h>
 #include <DEGame/Loader/TextureLoader.h>

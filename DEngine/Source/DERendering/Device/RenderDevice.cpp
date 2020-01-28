@@ -6,7 +6,6 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/Device/CopyCommandList.h>
 #include <DERendering/Device/DrawCommandList.h>
-#include <DERendering/Framegraph/Framegraph.h>
 #include <DECore/Container/Vector.h>
 #include "RenderDevice.h"
 
@@ -84,23 +83,6 @@ void RenderDevice::Reset()
 	m_shaderResourceHeap.Reset();
 	m_RtvHeap.Reset();
 	m_DsvHeap.Reset();
-}
-
-void RenderDevice::Render(const Framegraph& framegraph)
-{
-	const uint32_t commandListCount = static_cast<uint32_t>(framegraph.m_CommandLists.size());
-	Vector<ID3D12CommandList*> ppCommandLists(commandListCount);
-	for (uint32_t cnt = 0; cnt < commandListCount; ++cnt)
-	{
-		ppCommandLists[cnt] = framegraph.m_CommandLists[cnt]->ptr;
-	}
-	m_RenderQueue.ptr->ExecuteCommandLists(commandListCount, ppCommandLists.data());
-	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
-
-	m_SwapChain.ptr->Present(0, 0);
-
-	m_Fence.CPUWaitFor(m_FenceValue);
-	m_FenceValue++;
 }
 
 void RenderDevice::Submit(const CopyCommandList* commandLists, uint32_t num)
