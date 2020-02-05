@@ -14,8 +14,8 @@ echo Copying external libraries...
 xcopy /y ..\DTools\External\Assimp\bin\x64\assimp-vc141-mt.dll  ..\DTools\Bin\
 
 echo Building assets...
-..\DTools\Bin\DExporterRelease.exe model Assets\Models\ShaderBall\shader_ball.obj Bin\Assets\ ShaderBall
-..\DTools\Bin\DExporterRelease.exe hdr Assets\Textures\Gym\gym_entrance_1k.hdr Bin\Assets\ ShaderBall
+..\DTools\Bin\DExporterRelease.exe model Assets\Models\DamagedHelmet\glTF-Embedded\DamagedHelmet.gltf Bin\Assets\ SampleScene
+..\DTools\Bin\DExporterRelease.exe hdr Assets\Textures\Gym\gym_entrance_1k.hdr Bin\Assets\ SampleScene
 
 echo Done
 
