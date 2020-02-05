@@ -91,6 +91,11 @@ void LoadToMaterials(void *data)
 		}
 	}
 	fin.close();
+
+	if (numTexture == 5)
+	{
+		mat.shadingType = ShadingType::Textured;
+	}
 }
 
 struct LoadToMeshesData

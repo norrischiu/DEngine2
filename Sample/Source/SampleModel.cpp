@@ -16,7 +16,7 @@
 
 using namespace DE;
 
-void SampleModel::Setup(RenderDevice* renderDevice)
+void SampleModel::Setup(RenderDevice *renderDevice)
 {
 	SceneLoader sceneLoader;
 	sceneLoader.Init(renderDevice);
@@ -41,16 +41,24 @@ void SampleModel::Setup(RenderDevice* renderDevice)
 	m_UIPass.Setup(renderDevice);
 }
 
-void SampleModel::Update(RenderDevice& renderDevice, float dt)
+void SampleModel::Update(RenderDevice &renderDevice, float dt)
 {
 	SetupUI();
-	
+
 	m_Camera.ParseInput(dt);
 
 	// Prepare frame data
-	m_scene.ForEachMesh([&](uint32_t index) 
-	{
-		m_frameData.batcher.Add(index);
+	m_scene.ForEachMesh([&](uint32_t index) {
+		const auto& mesh = Meshes::Get(index);
+		const auto type = Materials::Get(mesh.m_MaterialID).shadingType;
+		if (type == ShadingType::None)
+		{
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::None, index);
+		}
+		else if (type == ShadingType::Textured)
+		{
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Textured, index);
+		}
 	});
 	m_frameData.cameraWVP = m_Camera.GetCameraToScreen();
 	m_frameData.cameraView = m_Camera.GetV();

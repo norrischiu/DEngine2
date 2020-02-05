@@ -28,11 +28,18 @@ struct uint3 final
 	uint32_t x, y, z;
 };
 
+enum ShadingType : uint8_t
+{
+	None,
+	Textured,
+};
+
 struct Material final
 {
 	Material() = default;
 	Material(const Material&) = delete;
 	Material& operator=(const Material&) = delete;
+	ShadingType shadingType;
 	Texture m_Textures[5];
 	// 8 float
 	float3 albedo;

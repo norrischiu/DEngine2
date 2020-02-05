@@ -15,6 +15,7 @@ class ForwardPass
 	struct Data final
 	{
 		GraphicsPipelineState pso;
+		GraphicsPipelineState texturedPso;
 		RootSignature rootSignature;
 		Texture depth;
 		Texture irradianceMap;
@@ -22,6 +23,7 @@ class ForwardPass
 
 		ConstantBufferView vsCbv;
 		ConstantBufferView psCbv;
+		ConstantBufferView materialCbv;
 
 		RenderDevice* pDevice;
 	};

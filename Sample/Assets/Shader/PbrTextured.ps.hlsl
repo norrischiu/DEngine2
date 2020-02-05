@@ -17,22 +17,30 @@ cbuffer LIGHT : register(b1)
 	float4		g_eyePosWS;
 };
 
-cbuffer PerMaterial : register(b2)
-{
-	float3 albedo;
-	float metallic;
-	float roughness;
-	float ao;
-}
-
+Texture2D<float3> AlbedoTex : register(t0);
+Texture2D<float3> NormalTex : register(t1);
+Texture2D<float3> MetallicTex : register(t2);
+Texture2D<float3> RoughnessTex : register(t3);
+Texture2D<float3> AOTex : register(t4);
 TextureCube IrradianceMap : register(t5);
+
 sampler SurfaceSampler : register(s0);
 
 float4 main(VS_OUTPUT IN) : SV_TARGET
 {
-	float3 normal = IN.normal;
+	float3 albedo = pow(AlbedoTex.Sample(SurfaceSampler, IN.texCorod), 2.2f);
+	float3 normal = NormalTex.Sample(SurfaceSampler, IN.texCorod) * 2.0f - 1.0f;
+	float metallic = MetallicTex.Sample(SurfaceSampler, IN.texCorod).b;
+	float roughness = RoughnessTex.Sample(SurfaceSampler, IN.texCorod).g;
+	float ao = AOTex.Sample(SurfaceSampler, IN.texCorod).r;
 
-	float3 N = normalize(normal);
+	float3x3 TBN =
+	{
+		IN.tangent.x, IN.tangent.y, IN.tangent.z,
+		IN.binormal.x, IN.binormal.y, IN.binormal.z,
+		IN.normal.x, IN.normal.y, IN.normal.z
+	};
+	float3 N = normalize(float4(mul(normal, TBN), 0)).xyz;
 	float3 V = normalize(g_eyePosWS - IN.posWS).xyz;
 
 	float3 F0 = float3(0.04f, 0.04f, 0.04f); // default F0 for dielectrics, not accurate but close enough
@@ -65,8 +73,9 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	float3 irradiance = IrradianceMap.Sample(SurfaceSampler, N).rgb;
-	float3 diffuse = irradiance * albedo * ao;
-	float3 color = diffuse + Lo;
+	float3 diffuse = irradiance * albedo;
+	float3 ambient = kD * diffuse * ao;
+	float3 color = ambient + Lo;
 
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
 	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
