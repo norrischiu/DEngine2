@@ -21,7 +21,7 @@ void SampleModel::Setup(RenderDevice* renderDevice)
 	SceneLoader sceneLoader;
 	sceneLoader.Init(renderDevice);
 	sceneLoader.SetRootPath("..\\Assets\\");
-	sceneLoader.Load("ShaderBall", m_scene);
+	sceneLoader.Load("SampleScene", m_scene);
 
 	TextureLoader texLoader;
 	texLoader.Init(renderDevice);
