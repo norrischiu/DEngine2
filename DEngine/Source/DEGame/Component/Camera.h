@@ -3,6 +3,7 @@
 #include <DECore/Math/simdmath.h>
 #include <DECore/Input/Keyboard.h>
 #include <DECore/Input/Mouse.h>
+#include <DERendering/Imgui/imgui.h>
 
 namespace DE
 {
@@ -10,8 +11,7 @@ namespace DE
 class Camera
 {
 public:
-
-	void Init(const Vector3& vPos, const Vector3& vLookAt, const Vector3& vUp, const float fFov, const float fRatio, const float fZNear, const float fZFar)
+	void Init(const Vector3 &vPos, const Vector3 &vLookAt, const Vector3 &vUp, const float fFov, const float fRatio, const float fZNear, const float fZFar)
 	{
 		m_vPos = vPos;
 		m_vLookAt = vLookAt;
@@ -53,15 +53,19 @@ public:
 
 		// mouse
 		float yaw = 0, pitch = 0;
-		if (Mouse::m_currState.Buttons[0])
-		{	
-			auto deltaX = Mouse::m_currState.cursorPos.x - Mouse::m_lastState.cursorPos.x;
-			pitch = deltaX * pitchSpeed * dt;
-		}		
-		if (Mouse::m_currState.Buttons[1])
+		ImGuiIO &io = ImGui::GetIO();
+		if (!io.WantCaptureMouse)
 		{
-			auto deltaY = Mouse::m_currState.cursorPos.y - Mouse::m_lastState.cursorPos.y;
-			yaw = deltaY * yawSpeed * dt;
+			if (Mouse::m_currState.Buttons[0])
+			{
+				auto deltaX = Mouse::m_currState.cursorPos.x - Mouse::m_lastState.cursorPos.x;
+				pitch = deltaX * pitchSpeed * dt;
+			}
+			if (Mouse::m_currState.Buttons[1])
+			{
+				auto deltaY = Mouse::m_currState.cursorPos.y - Mouse::m_lastState.cursorPos.y;
+				yaw = deltaY * yawSpeed * dt;
+			}
 		}
 
 		m_mView *= Matrix4::Translation(translation) * Matrix4::RotationX(yaw) * Matrix4::RotationY(pitch);
@@ -85,7 +89,7 @@ public:
 	}
 
 public:
-	float yawSpeed = 0.5f; // pitch
+	float yawSpeed = 0.5f;   // pitch
 	float pitchSpeed = 0.5f; // yaw
 	float translateSpeed = 1.0f;
 
@@ -97,4 +101,4 @@ private:
 	Matrix4 m_mView;
 };
 
-};
+}; // namespace DE
