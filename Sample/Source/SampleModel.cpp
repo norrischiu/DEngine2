@@ -85,5 +85,23 @@ void SampleModel::SetupUI()
 {
 	bool active;
 	ImGui::Begin("Edit", &active);
+	m_scene.ForEachMesh([&](uint32_t index) {
+		auto &mesh = Meshes::Get(index);
+		char name[256];
+		sprintf_s(name, "mesh_%i", index);
+		if (ImGui::CollapsingHeader(name))
+		{
+			auto &material = Materials::Get(mesh.m_MaterialID);
+			sprintf_s(name, "mat_%i", mesh.m_MaterialID);
+			if (ImGui::TreeNode(name))
+			{
+				ImGui::SliderFloat3("Albedo", &material.albedo.x, 0.0f, 1.0f);
+				ImGui::SliderFloat("Roughness", &material.roughness, 0.0f, 1.0f);
+				ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f);
+				ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f);
+				ImGui::TreePop();
+			}
+		}
+	});
 	ImGui::End();
 }
