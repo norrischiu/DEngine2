@@ -7,8 +7,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "tiny_gltf.h"
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -187,13 +185,20 @@ void ProcessMaterial(const aiScene *scene, std::vector<Material>& materials)
 
 		// TEXTURE
 		char tmp[256];
-		aiTextureType aiTypes[] = { aiTextureType_DIFFUSE,  aiTextureType_HEIGHT, aiTextureType_AMBIENT, aiTextureType_SHININESS, aiTextureType_OPACITY };
+		struct { aiTextureType type; uint32_t index; } aiTextures[] =
+		{
+			{ aiTextureType_DIFFUSE, 1 }, // albedo, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE aiTextureType_DIFFUSE, 1
+			{ aiTextureType_NORMALS, 0 }, // normal
+			{ aiTextureType_UNKNOWN, 0 }, // metallic, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
+			{ aiTextureType_UNKNOWN, 0 }, // roughness, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
+			{ aiTextureType_LIGHTMAP, 0 }, // ao
+		};
 		for (uint32_t i = 0; i < TextureType::Count; ++i)
 		{
 			auto& tex = outMat.textures[i];
 			aiString path;
 
-			material->GetTexture(aiTypes[i], 0, &path);
+			material->GetTexture(aiTextures[i].type, aiTextures[i].index, &path);
 			if (path.length != 0)
 			{
 				int x, y, n;
