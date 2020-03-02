@@ -4,7 +4,7 @@
 // Cpp
 #include <stdint.h>
 // Engine
-#include <DECore/DECore.h>
+#include <DECore/Macro/Macro.h>
 
 namespace DE
 {
