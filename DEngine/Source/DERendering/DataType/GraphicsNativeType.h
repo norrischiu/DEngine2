@@ -232,10 +232,17 @@ public:
 	{
 		desc.pInputElementDescs = inputElementDesc;
 	}
-	InputLayout(const InputLayout&) = delete;
 	InputLayout& operator=(const InputLayout&) = delete;
 	~InputLayout() = default;
 	
+	static InputLayout Null()
+	{
+		InputLayout inputLayout;
+		inputLayout.desc.pInputElementDescs = nullptr;
+		inputLayout.desc.NumElements = 0;
+		return inputLayout;
+	}
+
 	void Add(const char* semanticName, uint32_t semanticIndex, uint32_t inputSlot, DXGI_FORMAT format)
 	{
 		uint32_t i = desc.NumElements;

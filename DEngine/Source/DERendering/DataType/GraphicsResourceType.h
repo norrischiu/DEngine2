@@ -313,9 +313,9 @@ public:
 	ConstantDefinition constantDefs[16];
 	SamplerDefinition samplerDef;
 
-	uint32_t readOnlyResourceNum;
-	uint32_t readWriteResourceNum;
-	uint32_t constantNum;
-	uint32_t samplerNum;
+	uint32_t readOnlyResourceNum = 0;
+	uint32_t readWriteResourceNum = 0;
+	uint32_t constantNum = 0;
+	uint32_t samplerNum = 0;
 };
 }

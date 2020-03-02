@@ -23,7 +23,7 @@ struct ShaderResourceView
 	{
 		if (viewDimension == D3D12_SRV_DIMENSION_TEXTURECUBE)
 		{
-			desc.TextureCube.MipLevels = 1;
+			desc.TextureCube.MipLevels = texture.m_Desc.MipLevels;
 			desc.TextureCube.MostDetailedMip = 0;
 		}
 		else {
