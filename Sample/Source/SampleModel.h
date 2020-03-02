@@ -4,6 +4,7 @@
 #include <DEGame/Collection/Scene.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/RenderPass/EquirectangularToCubemapPass.h>
+#include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
 #include <DERendering/RenderPass/SkyboxPass.h>
 #include <DERendering/RenderPass/UIPass.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
@@ -32,6 +33,7 @@ private:
 
 	DE::ForwardPass m_forwardPass;
 	DE::EquirectangularToCubemapPass m_precomputeCubemapPass;
+	DE::PrecomputeSpecularIBLPass m_precomputeSpecularIBLPass;
 	DE::SkyboxPass m_SkyboxPass;
 	DE::UIPass m_UIPass;
 
