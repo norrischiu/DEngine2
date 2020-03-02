@@ -17,6 +17,7 @@ public:
 	FrameData() = default;
 
 	MaterialMeshBatcher batcher;
+	Vector3 cameraPos;
 	Matrix4 cameraView;
 	Matrix4 cameraProjection;
 	Matrix4 cameraWVP;

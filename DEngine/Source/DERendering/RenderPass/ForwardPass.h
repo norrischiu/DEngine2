@@ -19,6 +19,8 @@ class ForwardPass
 		RootSignature rootSignature;
 		Texture depth;
 		Texture irradianceMap;
+		Texture prefilteredEnvMap;
+		Texture LUT;
 		uint32_t backBufferIndex = 0;
 
 		ConstantBufferView vsCbv;
@@ -43,7 +45,7 @@ class ForwardPass
 public:
 	ForwardPass() = default;
 
-	void Setup(RenderDevice* renderDevice, Texture& irradianceMap);
+	void Setup(RenderDevice* renderDevice, Texture& irradianceMap, Texture& prefilteredEnvMap, Texture& LUT);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
 	// temp

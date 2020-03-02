@@ -23,7 +23,8 @@ Texture2D<float3> MetallicTex : register(t2);
 Texture2D<float3> RoughnessTex : register(t3);
 Texture2D<float3> AOTex : register(t4);
 TextureCube IrradianceMap : register(t5);
-
+TextureCube prefilteredEnvMap : register(t6);
+Texture2D BRDFIntegrationMap : register(t7);
 sampler SurfaceSampler : register(s0);
 
 float4 main(VS_OUTPUT IN) : SV_TARGET
@@ -42,6 +43,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	};
 	float3 N = normalize(float4(mul(normal, TBN), 0)).xyz;
 	float3 V = normalize(g_eyePosWS - IN.posWS).xyz;
+	float3 R = reflect(-V, N);
 
 	float3 F0 = float3(0.04f, 0.04f, 0.04f); // default F0 for dielectrics, not accurate but close enough
 	F0 = lerp(F0, albedo, metallic);
@@ -58,7 +60,11 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	// cook-torrance brdf
 	float NDF = DistributionGGX(N, H, roughness);
 	float G = GeometrySmith(N, V, L, roughness);
-	float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+	// float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+	float3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
+	float3 prefilteredSpecular = prefilteredEnvMap.SampleLevel(SurfaceSampler, R, roughness * 4.0f).rgb;
+	float2 specularBrdf = BRDFIntegrationMap.Sample(SurfaceSampler, float2(max(dot(N, V), 0.0f), roughness)).rg;
+	float3 indirectSpecular = prefilteredSpecular * (F * specularBrdf.x + specularBrdf.y);
 
 	float3 kS = F;
 	float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
@@ -74,7 +80,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 
 	float3 irradiance = IrradianceMap.Sample(SurfaceSampler, N).rgb;
 	float3 diffuse = irradiance * albedo;
-	float3 ambient = kD * diffuse * ao;
+	float3 ambient = (kD * diffuse + indirectSpecular) * ao;
 	float3 color = ambient + Lo;
 
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));

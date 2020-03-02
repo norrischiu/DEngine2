@@ -10,34 +10,35 @@
 namespace DE
 {
 
-void ForwardPass::Setup(RenderDevice* renderDevice, Texture& irradianceMap)
+void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Texture &prefilteredEnvMap, Texture &LUT)
 {
 	Vector<char> vs;
 	Vector<char> ps;
 	Vector<char> texturedPs;
-	Job* vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso", vs);
+	Job *vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso", vs);
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso", ps);
+	Job *psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
-	Job* texturedPsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PbrTextured.ps.cso", texturedPs);
+	Job *texturedPsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PbrTextured.ps.cso", texturedPs);
 	JobScheduler::Instance()->WaitOnMainThread(texturedPsCounter);
 
 	{
-		ConstantDefinition constants[3] = 
-		{ 
-			{0, D3D12_SHADER_VISIBILITY_VERTEX}, 
-			{1, D3D12_SHADER_VISIBILITY_PIXEL},
-			{2, D3D12_SHADER_VISIBILITY_PIXEL},
-		};
-		ReadOnlyResourceDefinition readOnly[2] = 
-		{ 
-			{ 0, 5, D3D12_SHADER_VISIBILITY_PIXEL }, 
-			{ 5, 1, D3D12_SHADER_VISIBILITY_PIXEL } 
-		};
-		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
+		ConstantDefinition constants[3] =
+			{
+				{0, D3D12_SHADER_VISIBILITY_VERTEX},
+				{1, D3D12_SHADER_VISIBILITY_PIXEL},
+				{2, D3D12_SHADER_VISIBILITY_PIXEL},
+			};
+		ReadOnlyResourceDefinition readOnly[3] =
+			{
+				{0, 5, D3D12_SHADER_VISIBILITY_PIXEL},
+				{5, 2, D3D12_SHADER_VISIBILITY_PIXEL},
+				{7, 1, D3D12_SHADER_VISIBILITY_PIXEL}
+			};
+		SamplerDefinition sampler = {0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER};
 
 		data.rootSignature.Add(constants, 3);
-		data.rootSignature.Add(readOnly, 2);
+		data.rootSignature.Add(readOnly, 3);
 		data.rootSignature.Add(sampler);
 		data.rootSignature.Finalize(renderDevice->m_Device);
 	}
@@ -90,7 +91,7 @@ void ForwardPass::Setup(RenderDevice* renderDevice, Texture& irradianceMap)
 			PS.pShaderBytecode = texturedPs.data();
 			PS.BytecodeLength = texturedPs.size();
 			desc.PS = PS;
-			
+
 			data.texturedPso.Init(renderDevice->m_Device, desc);
 		}
 	}
@@ -115,12 +116,14 @@ void ForwardPass::Setup(RenderDevice* renderDevice, Texture& irradianceMap)
 	}
 	{
 		data.irradianceMap = irradianceMap;
+		data.prefilteredEnvMap = prefilteredEnvMap;
+		data.LUT = LUT;
 	}
 
 	data.pDevice = renderDevice;
 }
 
-void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
+void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameData)
 {
 	PerObjectCBuffer transforms;
 	transforms.world = Matrix4::Identity;
@@ -128,11 +131,11 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 	data.vsCbv.buffer.Update(&transforms, sizeof(transforms));
 
 	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	
+
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
 
-	float clearColor[] = { 0.5f, 0.5f, 0.5f, 0.1f };
-	RenderTargetView::Desc rtv { data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0 };
+	float clearColor[] = {0.5f, 0.5f, 0.5f, 0.1f};
+	RenderTargetView::Desc rtv{data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0};
 	commandList.SetRenderTargetDepth(&rtv, 1, &data.depth, ClearFlag::Color | ClearFlag::Depth, clearColor, 1.0f);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -141,15 +144,17 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 
 	commandList.SetConstant(0, data.vsCbv);
 	commandList.SetConstant(1, data.psCbv);
-	commandList.SetReadOnlyResource(1, &data.irradianceMap, 1, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	Texture indirects[] = { data.irradianceMap, data.prefilteredEnvMap };
+	commandList.SetReadOnlyResource(1, indirects, 2, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	commandList.SetReadOnlyResource(2, &data.LUT, 1);
 
 	{
 		commandList.SetPipeline(data.pso);
-		const auto& meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::None);
-		for (auto& i : meshes)
+		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::None);
+		for (auto &i : meshes)
 		{
-			const Mesh& mesh = Meshes::Get(i);
-			const auto& material = Materials::Get(mesh.m_MaterialID);
+			const Mesh &mesh = Meshes::Get(i);
+			const auto &material = Materials::Get(mesh.m_MaterialID);
 
 			struct MaterialParameter
 			{
@@ -157,30 +162,29 @@ void ForwardPass::Execute(DrawCommandList& commandList, const FrameData& frameDa
 			};
 			data.materialCbv.buffer.Update(&material.albedo, sizeof(MaterialParameter));
 			commandList.SetConstant(2, data.materialCbv);
-			
-			VertexBuffer vertexBuffers[] = { mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords };
-			commandList.SetVertexBuffers(vertexBuffers, 4);
-			commandList.SetIndexBuffer(mesh.m_Indices);
-			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
-		}
-	}	
-	{
-		commandList.SetPipeline(data.texturedPso);
-		
-		const auto& meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::Textured);
-		for (auto& i : meshes)
-		{
-			const Mesh& mesh = Meshes::Get(i);
-			uint32_t materialID = mesh.m_MaterialID;
 
-			commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
-			VertexBuffer vertexBuffers[] = { mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords };
+			VertexBuffer vertexBuffers[] = {mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords};
 			commandList.SetVertexBuffers(vertexBuffers, 4);
 			commandList.SetIndexBuffer(mesh.m_Indices);
 			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
 		}
 	}
+	{
+		commandList.SetPipeline(data.texturedPso);
 
+		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::Textured);
+		for (auto &i : meshes)
+		{
+			const Mesh &mesh = Meshes::Get(i);
+			uint32_t materialID = mesh.m_MaterialID;
+
+			commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
+			VertexBuffer vertexBuffers[] = {mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords};
+			commandList.SetVertexBuffers(vertexBuffers, 4);
+			commandList.SetIndexBuffer(mesh.m_Indices);
+			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
+		}
+	}
 
 	data.backBufferIndex = 1 - data.backBufferIndex;
 }
