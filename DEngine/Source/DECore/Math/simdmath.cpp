@@ -40,28 +40,27 @@ SIMDMatrix4 SIMDMatrix4::Translation(const SIMDVector3 & translation)
 
 void SIMDMatrix4::SetPosition(const SIMDVector3 & translation)
 {
-	__m128 trans = _mm_setr_ps(translation.GetX(), translation.GetY(), translation.GetZ(), 0.0f);
-	_rows[2] = _mm_insert_ps(_rows[2], trans, 0xF0);
+	_rows[3] = _mm_setr_ps(translation.GetX(), translation.GetY(), translation.GetZ(), 1.0f);
 }
 
-SIMDVector3 SIMDMatrix4::GetPosition()
+SIMDVector3 SIMDMatrix4::GetPosition() const
 {
 	return SIMDVector3(_rows[3].m128_f32[0], _rows[3].m128_f32[1], _rows[3].m128_f32[2]);
 }
 
-SIMDVector3 SIMDMatrix4::GetRight()
+SIMDVector3 SIMDMatrix4::GetRight() const
 {
-	return SIMDVector3(_rows[0].m128_f32[0], _rows[1].m128_f32[0], _rows[2].m128_f32[0]);
+	return SIMDVector3(_rows[0].m128_f32[0], _rows[0].m128_f32[1], _rows[0].m128_f32[2]);
 }
 
-SIMDVector3 SIMDMatrix4::GetUp()
+SIMDVector3 SIMDMatrix4::GetUp() const
 {
-	return SIMDVector3(_rows[0].m128_f32[1], _rows[1].m128_f32[1], _rows[2].m128_f32[1]);
+	return SIMDVector3(_rows[1].m128_f32[0], _rows[1].m128_f32[1], _rows[1].m128_f32[2]);
 }
 
-SIMDVector3 SIMDMatrix4::GetForward()
+SIMDVector3 SIMDMatrix4::GetForward() const
 {
-	return SIMDVector3(_rows[0].m128_f32[2], _rows[1].m128_f32[2], _rows[2].m128_f32[2]);
+	return SIMDVector3(_rows[2].m128_f32[0], _rows[2].m128_f32[1], _rows[2].m128_f32[2]);
 }
 
 void SIMDMatrix4::CreateLookAt(const SIMDVector3& vEye, const SIMDVector3& vAt, const SIMDVector3& vUp)

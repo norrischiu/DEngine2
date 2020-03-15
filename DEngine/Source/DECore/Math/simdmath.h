@@ -329,10 +329,10 @@ public:
 	void SetPosition(const SIMDVector3& translation);
 
 	// Extract elements from matrix
-	SIMDVector3 GetPosition();
-	SIMDVector3 GetForward();
-	SIMDVector3 GetRight();
-	SIMDVector3 GetUp();
+	SIMDVector3 GetPosition() const;
+	SIMDVector3 GetForward() const;
+	SIMDVector3 GetRight() const;
+	SIMDVector3 GetUp() const;
 
 	// Set a rotation transformation given a quaternion
 	// void CreateRotationFromQuaternion(const SIMDQuaternion& q);
