@@ -256,8 +256,8 @@ public:
 
 		_rows[0] = _mm_set_ps1(1.0f);
 		_rows[0] = _mm_insert_ps(_rows[0], _rows[0], 0x0E);
-		_rows[1] = _mm_setr_ps(0.0f, cosTheta, -sinTheta, 0.0f);
-		_rows[2] = _mm_setr_ps(0.0f, sinTheta, cosTheta, 0.0f);
+		_rows[1] = _mm_setr_ps(0.0f, cosTheta, sinTheta, 0.0f);
+		_rows[2] = _mm_setr_ps(0.0f, -sinTheta, cosTheta, 0.0f);
 		_rows[3] = _mm_set_ps1(1.0f);
 		_rows[3] = _mm_insert_ps(_rows[3], _rows[3], 0x07);
 	}
@@ -274,10 +274,10 @@ public:
 		float cosTheta = cosf(radian);
 		float sinTheta = sinf(radian);
 
-		_rows[0] = _mm_setr_ps(cosTheta, 0.0f, sinTheta, 0.0f);
+		_rows[0] = _mm_setr_ps(cosTheta, 0.0f, -sinTheta, 0.0f);
 		_rows[1] = _mm_set_ps1(1.0f);
 		_rows[1] = _mm_insert_ps(_rows[1], _rows[1], 0x0D);
-		_rows[2] = _mm_setr_ps(-sinTheta, 0.0f, cosTheta, 0.0f);
+		_rows[2] = _mm_setr_ps(sinTheta, 0.0f, cosTheta, 0.0f);
 		_rows[3] = _mm_set_ps1(1.0f);
 		_rows[3] = _mm_insert_ps(_rows[3], _rows[3], 0x07);
 	}
@@ -294,8 +294,8 @@ public:
 		float cosTheta = cosf(radian);
 		float sinTheta = sinf(radian);
 
-		_rows[0] = _mm_setr_ps(cosTheta, -sinTheta, 0.0f, 0.0f);
-		_rows[1] = _mm_setr_ps(sinTheta, cosTheta, 0.0f, 0.0f);
+		_rows[0] = _mm_setr_ps(cosTheta, sinTheta, 0.0f, 0.0f);
+		_rows[1] = _mm_setr_ps(-sinTheta, cosTheta, 0.0f, 0.0f);
 		_rows[2] = _mm_set_ps1(1.0f);
 		_rows[2] = _mm_insert_ps(_rows[2], _rows[2], 0x0B);
 		_rows[3] = _mm_set_ps1(1.0f);
