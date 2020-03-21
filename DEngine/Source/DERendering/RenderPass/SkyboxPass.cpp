@@ -24,7 +24,7 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 
 		data.rootSignature.Add(&constant, 1);
 		data.rootSignature.Add(&readOnly, 1);
-		data.rootSignature.Add(sampler);
+		data.rootSignature.Add(&sampler, 1);
 		data.rootSignature.Finalize(renderDevice->m_Device);
 	}
 	{

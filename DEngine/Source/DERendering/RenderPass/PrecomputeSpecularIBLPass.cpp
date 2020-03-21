@@ -35,7 +35,7 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 
 		data.rootSignature.Add(constants, 2);
 		data.rootSignature.Add(&readOnly, 1);
-		data.rootSignature.Add(sampler);
+		data.rootSignature.Add(&sampler, 1);
 		data.rootSignature.Finalize(renderDevice->m_Device);
 	}
 	{

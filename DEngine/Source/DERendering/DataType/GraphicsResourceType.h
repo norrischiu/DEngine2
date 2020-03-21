@@ -225,10 +225,13 @@ public:
 		constantNum += num;
 	}
 
-	void Add(SamplerDefinition def)
+	void Add(SamplerDefinition* defs, uint32_t num)
 	{
-		samplerDef = def;
-		samplerNum = 1;
+		for (uint32_t i = 0; i < num; ++i)
+		{
+			samplerDefs[samplerNum + i] = defs[i];
+		}
+		samplerNum += num;
 	}
 
 	void Finalize(const GraphicsDevice& device)
@@ -236,6 +239,7 @@ public:
 		D3D12_ROOT_SIGNATURE_DESC desc;
 		D3D12_ROOT_PARAMETER rootParameters[16];
 		D3D12_DESCRIPTOR_RANGE range[16];
+		D3D12_STATIC_SAMPLER_DESC samplers[4];
 		uint32_t index = 0;
 
 		assert(readOnlyResourceNum <= 16);
@@ -267,25 +271,24 @@ public:
 			index++;
 		}
 
-		if (samplerNum > 0)
-		{
-			D3D12_STATIC_SAMPLER_DESC sampler = {};
-			sampler.ShaderVisibility = samplerDef.visibility;
-			sampler.ShaderRegister = samplerDef.baseRegister;
-			sampler.RegisterSpace = 0;
-			sampler.AddressU = samplerDef.addressMode;
-			sampler.AddressV = samplerDef.addressMode;
-			sampler.AddressW = samplerDef.addressMode;
-			sampler.Filter = samplerDef.filter;
-			sampler.MipLODBias = 0.0f;
-			sampler.MaxAnisotropy = 1;
-			sampler.ComparisonFunc = samplerDef.comparsionFunc;
-			sampler.MinLOD = 0;
-			sampler.MaxLOD = samplerDef.maxLOD;
 
-			desc.pStaticSamplers = &sampler;
-			desc.NumStaticSamplers = 1;
+		for (uint32_t i = 0; i < samplerNum; ++i)
+		{
+			samplers[i].ShaderVisibility = samplerDefs[i].visibility;
+			samplers[i].ShaderRegister = samplerDefs[i].baseRegister;
+			samplers[i].RegisterSpace = 0;
+			samplers[i].AddressU = samplerDefs[i].addressMode;
+			samplers[i].AddressV = samplerDefs[i].addressMode;
+			samplers[i].AddressW = samplerDefs[i].addressMode;
+			samplers[i].Filter = samplerDefs[i].filter;
+			samplers[i].MipLODBias = 0.0f;
+			samplers[i].MaxAnisotropy = 1;
+			samplers[i].ComparisonFunc = samplerDefs[i].comparsionFunc;
+			samplers[i].MinLOD = 0;
+			samplers[i].MaxLOD = samplerDefs[i].maxLOD;
 		}
+		desc.pStaticSamplers = samplers;
+		desc.NumStaticSamplers = samplerNum;
 
 		desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		desc.NumParameters = index;
@@ -311,7 +314,7 @@ public:
 	ReadOnlyResourceDefinition readOnlyResourceDefs[16];
 	ReadWriteResourceDefinition readWriteResourceDefs[16];
 	ConstantDefinition constantDefs[16];
-	SamplerDefinition samplerDef;
+	SamplerDefinition samplerDefs[4];
 
 	uint32_t readOnlyResourceNum = 0;
 	uint32_t readWriteResourceNum = 0;

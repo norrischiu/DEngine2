@@ -33,13 +33,16 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 			{
 				{0, 5, D3D12_SHADER_VISIBILITY_PIXEL},
 				{5, 2, D3D12_SHADER_VISIBILITY_PIXEL},
-				{7, 1, D3D12_SHADER_VISIBILITY_PIXEL}
+				{7, 1, D3D12_SHADER_VISIBILITY_PIXEL},
 			};
-		SamplerDefinition sampler = {0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER};
+		SamplerDefinition samplers[2] = {
+			{0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER},
+			{1, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER},
+		};
 
 		data.rootSignature.Add(constants, 3);
 		data.rootSignature.Add(readOnly, 3);
-		data.rootSignature.Add(sampler);
+		data.rootSignature.Add(samplers, 2);
 		data.rootSignature.Finalize(renderDevice->m_Device);
 	}
 	{
