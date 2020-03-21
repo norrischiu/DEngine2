@@ -21,7 +21,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	float roughness = IN.vPos.y / textureSize.y;
 
 	float3 normal = float3(0.0f, 1.0f, 0.0f);
-    float3 view = normal;
+	float3 view = float3(sqrt(1.0f - NdotV * NdotV), NdotV, 0.0f);
 
 	const uint numSample = 1024;
 	float scale, bias;
@@ -47,5 +47,5 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
         }
 	}
 
-	return float4(scale, bias, 0.0f, 1.0f);
+	return float4(scale / numSample, bias / numSample, 0.0f, 1.0f);
 }
