@@ -13,15 +13,42 @@ class Camera
 public:
 	void Init(const Vector3 &vPos, const Vector3 &vLookAt, const Vector3 &vUp, const float fFov, const float fRatio, const float fZNear, const float fZFar)
 	{
-		m_vPos = vPos;
-		m_vLookAt = vLookAt;
-		m_vUp = vUp;
 		m_mPerspective = Matrix4::PerspectiveProjection(fFov, fRatio, fZNear, fZFar);
-		m_mView = Matrix4::LookAtMatrix(vPos, vLookAt, vUp);
+
+		m_vTranslation = vPos;
+		if (Cross(Vector3::UnitZ, vLookAt - vPos).Dot(Vector3::UnitX) > 0)
+		{
+			m_vRotation.SetX(Vector3::AngleBetween(Vector3::UnitZ, vLookAt - vPos));
+		}
+		else 
+		{
+			m_vRotation.SetX(-Vector3::AngleBetween(Vector3::UnitZ, vLookAt - vPos));
+		}
 	}
 
 	void ParseInput(float dt)
 	{
+		// mouse
+		Vector3 rotation;
+		ImGuiIO &io = ImGui::GetIO();
+		if (!io.WantCaptureMouse)
+		{
+			if (Mouse::m_currState.Buttons[1])
+			{
+				auto deltaX = Mouse::m_currState.cursorPos.x - Mouse::m_lastState.cursorPos.x;
+				rotation.SetY(deltaX * yawSpeed * dt);
+
+				auto deltaY = Mouse::m_currState.cursorPos.y - Mouse::m_lastState.cursorPos.y;
+				rotation.SetX(deltaY * pitchSpeed * dt);
+			}
+		}
+
+		m_vRotation.Add(rotation);
+
+		m_mLocalTransform = Matrix4::RotationX(m_vRotation.GetX()) * Matrix4::RotationY(m_vRotation.GetY());
+		Vector3 forward = m_mLocalTransform.GetForward();
+		Vector3 right = m_mLocalTransform.GetRight();
+
 		// keyboard
 		Vector3 translation = {};
 		for (int key = 0; key < Keyboard::KEY_NUM; ++key)
@@ -30,45 +57,26 @@ public:
 			{
 				if (key == VK_W)
 				{
-					Vector3 forward = -m_mView.GetForward(); // view matrix is inverted
-					translation += forward * dt;
+					m_vTranslation += forward * dt;
 				}
 				if (key == VK_S)
 				{
-					Vector3 back = m_mView.GetForward();
-					translation += back * dt;
+					m_vTranslation -= forward * dt;
 				}
 				if (key == VK_A)
 				{
-					Vector3 left = m_mView.GetRight();
-					translation += left * dt;
+					m_vTranslation -= right * dt;
 				}
 				if (key == VK_D)
 				{
-					Vector3 right = -m_mView.GetRight();
-					translation += right * dt;
+					m_vTranslation += right * dt;
 				}
 			}
 		};
 
-		// mouse
-		float yaw = 0, pitch = 0;
-		ImGuiIO &io = ImGui::GetIO();
-		if (!io.WantCaptureMouse)
-		{
-			if (Mouse::m_currState.Buttons[0])
-			{
-				auto deltaX = Mouse::m_currState.cursorPos.x - Mouse::m_lastState.cursorPos.x;
-				pitch = deltaX * pitchSpeed * dt;
-			}
-			if (Mouse::m_currState.Buttons[1])
-			{
-				auto deltaY = Mouse::m_currState.cursorPos.y - Mouse::m_lastState.cursorPos.y;
-				yaw = deltaY * yawSpeed * dt;
-			}
-		}
+		m_mLocalTransform.SetPosition(m_vTranslation);
 
-		m_mView *= Matrix4::Translation(translation) * Matrix4::RotationX(yaw) * Matrix4::RotationY(pitch);
+		m_mView = m_mLocalTransform.Inverse();
 	}
 
 	// view matrix: world to camera
@@ -88,15 +96,22 @@ public:
 		return m_mView * m_mPerspective;
 	}
 
+	Vector3 GetPosition() const
+	{
+		return m_mLocalTransform.GetPosition();
+	}
+
 public:
-	float yawSpeed = 0.5f;   // pitch
-	float pitchSpeed = 0.5f; // yaw
+	float yawSpeed = 0.25f;
+	float pitchSpeed = 0.25f;
 	float translateSpeed = 1.0f;
 
 private:
-	Vector3 m_vPos;
-	Vector3 m_vLookAt;
-	Vector3 m_vUp;
+	Vector3 m_vTranslation;
+	Vector3 m_vRotation;
+
+	Matrix4 m_mLocalTransform;
+
 	Matrix4 m_mPerspective;
 	Matrix4 m_mView;
 };

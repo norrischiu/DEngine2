@@ -463,10 +463,10 @@ public:
 	}
 
 	// Dot product, return a float
-	inline float Dot(const SIMDVector3& other)
+	inline float Dot(const SIMDVector3& other) const
 	{
 		__m128 temp = _mm_dp_ps(_data, other._data, 0x78);
-		return	temp.m128_f32[3];
+		return temp.m128_f32[3];
 	}
 
 	// Add two vector, store result back to this
@@ -476,7 +476,7 @@ public:
 	}
 
 	// Overload + operator
-	inline SIMDVector3 operator+(const SIMDVector3& other)
+	inline SIMDVector3 operator+(const SIMDVector3& other) const
 	{
 		SIMDVector3 result;
 		result._data = _mm_add_ps(_data, other._data);
@@ -669,6 +669,11 @@ public:
 		_data = _mm_insert_ps(_data, y, 0x50);
 		_data = _mm_insert_ps(_data, z, 0xA0);
 		_data = _mm_insert_ps(_data, w, 0xF0);
+	}
+
+	static float AngleBetween(const SIMDVector3& lhs, const SIMDVector3& rhs)
+	{
+		return acosf(lhs.Dot(rhs) / lhs.Length() / rhs.Length());
 	}
 };
 
