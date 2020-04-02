@@ -2,8 +2,8 @@
 
 #include "Pbr.hlsli"
 
-TextureCube inputTex : register(t0);
-SamplerState inputSampler : register(s0);
+TextureCube environmentMap : register(t0);
+SamplerState SurfaceSampler : register(s0);
 cbuffer PrefilterCBuffer : register(b1)
 {
     float roughness;
@@ -27,14 +27,14 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 
 	for (uint i = 0; i < numSample; ++i)
 	{
-		float2 random = Hammersley(i, numSample);
-		float3 H = ImportanceSampleGGX(random, normal, roughness);
+		float2 random = RandomFloat2_Hammersley(i, numSample);
+		float3 H = ImportanceSample_InverseCDF_GGX(random, normal, roughness);
 		float3 L = normalize(2.0 * dot(view, H) * H - view);
 
-		float NdotL = max(dot(normal, L), 0.0);
+		float NdotL = saturate(dot(normal, L));
         if(NdotL > 0.0)
         {
-            color += inputTex.Sample(inputSampler, L).rgb * NdotL;
+            color += environmentMap.Sample(SurfaceSampler, L).rgb * NdotL;
 			weight += NdotL;
         }
 	}

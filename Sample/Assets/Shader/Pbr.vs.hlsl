@@ -3,8 +3,8 @@
 // cbuffer
 cbuffer VS_PER_OBJECT : register(b0)
 {
-	matrix		g_WorldTransform;
-	matrix		g_WVPTransform;
+	matrix g_WorldTransform;
+	matrix g_WVPTransform;
 };
 
 // input

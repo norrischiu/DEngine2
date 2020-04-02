@@ -11,13 +11,15 @@ struct VS_OUTPUT
 	float2 texCorod : TEXCOORD0;
 };
 
-cbuffer LIGHT : register(b1)
+// assume one view only for now
+cbuffer PER_VIEW : register(b1)
 {
-	float4		g_lightPosWS;
-	float4		g_eyePosWS;
-};
+	float3 g_eyePosWS;
+	uint g_numPointLights;
+	Light g_pointLights[8];
+}
 
-cbuffer PerMaterial : register(b2)
+cbuffer PER_MATERIAL : register(b2)
 {
 	float3 albedo;
 	float metallic;
@@ -25,49 +27,31 @@ cbuffer PerMaterial : register(b2)
 	float ao;
 }
 
-TextureCube IrradianceMap : register(t5);
+TextureCube irradianceMap : register(t5);
+TextureCube prefilteredEnvMap : register(t6);
+Texture2D BRDFIntegrationMap : register(t7);
 sampler SurfaceSampler : register(s0);
 
 float4 main(VS_OUTPUT IN) : SV_TARGET
 {
-	float3 normal = IN.normal;
+	float3 N = normalize(IN.normal);
 
-	float3 N = normalize(normal);
-	float3 V = normalize(g_eyePosWS - IN.posWS).xyz;
 
-	float3 F0 = float3(0.04f, 0.04f, 0.04f); // default F0 for dielectrics, not accurate but close enough
-	F0 = lerp(F0, albedo, metallic);
-
-	// reflectance equation
-	float3 Lo = float3(0.0f, 0.0f, 0.0f);
-	// calculate per-light radiance
-	float3 L = normalize(g_lightPosWS - IN.posWS).xyz;
-	float3 H = normalize(V + L);
-	float distance = length(g_lightPosWS - IN.posWS);
-	float attenuation = 1.0 / (distance * distance);
-	float3 radiance = /*lightColors[i] * */attenuation;
-
-	// cook-torrance brdf
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometrySmith(N, V, L, roughness);
-	float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-	float3 kS = F;
-	float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
-	kD *= 1.0 - metallic;
-
-	float3 numerator = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-	float3 specular = numerator / max(denominator, 0.001);
-
-	// add to outgoing radiance Lo
-	float NdotL = max(dot(N, L), 0.0);
-	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-
-	float3 irradiance = IrradianceMap.Sample(SurfaceSampler, N).rgb;
-	float3 diffuse = irradiance * albedo * ao;
-	float3 color = diffuse + Lo;
-
+	float3 color = PbrShading(
+					irradianceMap,
+					prefilteredEnvMap,
+					BRDFIntegrationMap,
+					SurfaceSampler,
+					g_numPointLights,
+					g_pointLights,
+					IN.posWS.xyz,
+					g_eyePosWS,
+					N,
+					albedo,
+					metallic,
+					roughness,
+					ao
+	);
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
 	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
