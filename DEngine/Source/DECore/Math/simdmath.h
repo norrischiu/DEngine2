@@ -412,6 +412,12 @@ public:
 		return *this;
 	}
 
+	// Return raw float array
+	inline const float* Raw() const
+	{
+		return _data.m128_f32;
+	}
+
 	// Set data values
 	inline void Set(float x, float y, float z)
 	{

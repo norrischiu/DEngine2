@@ -83,7 +83,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 	SYSTEM_INFO sysInfo;
 	GetSystemInfo(&sysInfo);
-	uint32_t numThread = sysInfo.dwNumberOfProcessors;
+	uint32_t numThread = max(sysInfo.dwNumberOfProcessors / 2, 1);
 
 	JobScheduler::Instance()->StartUp(numThread);
 

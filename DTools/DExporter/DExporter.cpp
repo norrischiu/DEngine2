@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 		const aiScene *scene = nullptr;
 		try 
 		{
-			scene = importer.ReadFile(inputPath, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
+			scene = importer.ReadFile(inputPath, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded | aiProcess_PreTransformVertices);
 		}
 		catch (DeadlyImportError e)
 		{

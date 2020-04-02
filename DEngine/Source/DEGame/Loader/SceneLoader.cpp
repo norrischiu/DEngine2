@@ -244,23 +244,28 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	// material
 	uint32_t numMat = 0;
 	fin >> numMat;
-	Vector<Job::Desc> matJobDescs(numMat);
+	Vector<Job::Desc> matJobDescs;
+	matJobDescs.reserve(numMat);
 	Vector<CopyCommandList> commandLists(numMat);
 	for (uint32_t i = 0; i < numMat; ++i)
 	{
 		std::string name;
 		fin >> name;
 
-		LoadToMaterialsData *data = new LoadToMaterialsData();
-		sprintf(data->path, "%s\\%s\\Materials\\", m_sRootPath.c_str(), sceneName);
-		strcpy(data->materialName, name.c_str());
-		data->pMaterial = &Materials::Get(i);
-		data->pDevice = m_pRenderDevice;
-		data->pCopyCommandList = &commandLists[i];
-		Job::Desc desc(&LoadToMaterials, data, nullptr);
-		matJobDescs[i] = std::move(desc);
+		if (!materialToID.Contain(name.c_str()))
+		{
+			LoadToMaterialsData *data = new LoadToMaterialsData();
+			sprintf(data->path, "%s\\%s\\Materials\\", m_sRootPath.c_str(), sceneName);
+			strcpy(data->materialName, name.c_str());
+			const uint32_t index = Material::Create();
+			data->pMaterial = &Material::Get(index);
+			data->pDevice = m_pRenderDevice;
+			data->pCopyCommandList = &commandLists[i];
+			Job::Desc desc(&LoadToMaterials, data, nullptr);
+			matJobDescs.push_back(std::move(desc));
 
-		materialToID.Add(name.c_str(), i);
+			materialToID.Add(name.c_str(), i);
+		}
 	}
 	auto *loadMatCounter = JobScheduler::Instance()->Run(matJobDescs);
 	JobScheduler::Instance()->WaitOnMainThread(loadMatCounter);
@@ -280,7 +285,8 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 
 		LoadToMeshesData *data = new LoadToMeshesData();
 		strcpy(data->path, fileName);
-		data->pMesh = &Meshes::Get(i);
+		const uint32_t index = Mesh::Create();
+		data->pMesh = &Mesh::Get(index);
 		data->pDevice = m_pRenderDevice;
 		data->pMatToID = &materialToID;
 		Job::Desc desc(&LoadToMeshes, data, nullptr);
@@ -297,7 +303,7 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	m_pRenderDevice->Execute();
 	m_pRenderDevice->WaitForIdle();
 
-	scene.Set(meshes);
+	scene.SetMeshes(std::move(meshes));
 }
 
 } // namespace DE

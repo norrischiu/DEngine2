@@ -34,7 +34,12 @@ enum ShadingType : uint8_t
 	Textured,
 };
 
-struct Material final
+struct MaterialParameter
+{
+	float params[8];
+};
+
+struct Material final : public Pool<Material, 512>
 {
 	Material() = default;
 	Material(const Material&) = delete;
@@ -50,7 +55,7 @@ struct Material final
 };
 
 /**	@brief Contains vertex and index buffer of a mesh*/
-struct Mesh final
+struct Mesh final : public Pool<Mesh, 512>
 {
 
 public:
@@ -62,14 +67,6 @@ public:
 
 	uint32_t m_iNumIndices;
 	uint32_t m_MaterialID;
-};
-
-class Meshes : public Pool<Mesh, 512>
-{
-};
-
-struct Materials : public Pool<Material, 512>
-{
 };
 
 }

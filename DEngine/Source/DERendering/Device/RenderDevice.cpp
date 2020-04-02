@@ -127,7 +127,7 @@ void RenderDevice::ExecuteAndPresent()
 
 	m_ppCommandLists.clear();
 
-	m_SwapChain.ptr->Present(0, 0);
+	m_SwapChain.ptr->Present(1, 0);
 	
 	m_Fence.CPUWaitFor(m_FenceValue);
 	m_FenceValue++;

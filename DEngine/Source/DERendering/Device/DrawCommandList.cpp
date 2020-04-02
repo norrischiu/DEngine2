@@ -84,13 +84,13 @@ void DrawCommandList::SetPipeline(const GraphicsPipelineState& pipeline)
 	m_CommandList.ptr->SetPipelineState(pipeline.ptr);
 }
 
-void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv)
+void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv, size_t offset/* = 0*/)
 {
 	assert(m_pCurrSignature);
 	assert(index < m_pCurrSignature->constantNum);
 
 	const uint32_t rootParamterIndex = m_pCurrSignature->constantDefs[index].rootParameterIndex;
-	m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress());
+	m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
 }
 
 void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num, D3D12_SRV_DIMENSION viewDimension /*= D3D12_SRV_DIMENSION_TEXTURE2D*/)
@@ -117,7 +117,6 @@ void DrawCommandList::SetRenderTargetDepth(RenderTargetView::Desc* renderTarget,
 		if (flag & ClearFlag::Color) 
 		{
 			m_CommandList.ptr->ClearRenderTargetView(descriptors, clearColor, 0, nullptr);
-			clearColor += 4;
 		}
 	}
 	if (depth) 
