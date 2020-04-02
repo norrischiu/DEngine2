@@ -30,18 +30,6 @@ class ForwardPass
 		RenderDevice* pDevice;
 	};
 
-	struct PerLightCBuffer
-	{
-		Vector3 lightPos;
-		Vector3 eyePos;
-	};
-	struct PerObjectCBuffer
-	{
-		Matrix4 world;
-		Matrix4 wvp;
-	};
-
-
 public:
 	ForwardPass() = default;
 

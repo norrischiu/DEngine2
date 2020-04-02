@@ -104,13 +104,13 @@ public:
 		m_Desc = desc;
 	}
 
-	void Update(const void* memory, const size_t size)
+	void Update(const void* memory, const size_t size, size_t offset = 0)
 	{
 		void* address = nullptr;
 
-		D3D12_RANGE range{ 0, size };
+		D3D12_RANGE range{ 0, 0 };
 		ptr->Map(0, &range, &address);
-		memcpy(address, memory, size);
+		memcpy((void*)(reinterpret_cast<uintptr_t>(address) + offset), memory, size);
 		ptr->Unmap(0, &range);
 	}
 

@@ -1,5 +1,6 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsDataType.h>
+#include <DERendering/DataType/LightType.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
@@ -106,16 +107,10 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 	}
 	{
 		data.vsCbv.Init(renderDevice->m_Device, 256);
-	}
-	{
 		data.psCbv.Init(renderDevice->m_Device, 256);
-		PerLightCBuffer light;
-		light.lightPos = Vector3(0.0f, 5.0f, 0.0f);
-		light.eyePos = Vector3(0.0f, 0.0f, -3.0f);
-		data.psCbv.buffer.Update(&light, sizeof(light));
 	}
 	{
-		data.materialCbv.Init(renderDevice->m_Device, 256);
+		data.materialCbv.Init(renderDevice->m_Device, 256 * 32);
 	}
 	{
 		data.irradianceMap = irradianceMap;
@@ -128,10 +123,37 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 
 void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameData)
 {
-	PerObjectCBuffer transforms;
-	transforms.world = Matrix4::Identity;
-	transforms.wvp = frameData.cameraWVP;
-	data.vsCbv.buffer.Update(&transforms, sizeof(transforms));
+	// update cbuffer
+	struct
+	{
+		Matrix4 world;
+		Matrix4 wvp;
+	} perObjectCBuffer;
+	perObjectCBuffer.world = Matrix4::Identity;
+	perObjectCBuffer.wvp = frameData.cameraWVP;
+	data.vsCbv.buffer.Update(&perObjectCBuffer, sizeof(perObjectCBuffer));
+
+	struct
+	{
+		float3 eyePosWS;
+		uint32_t numPointLights;
+		struct Light
+		{
+			Vector4 position;
+			float3 color;
+			float intensity;
+		} pointlights[8];
+	} perViewCBuffer;
+	memcpy(&perViewCBuffer.eyePosWS, frameData.cameraPos.Raw(), sizeof(float3));
+	perViewCBuffer.numPointLights = frameData.pointLights.size();
+	for (uint32_t i = 0; i < perViewCBuffer.numPointLights; ++i)
+	{
+		const auto& pointLight = PointLight::Get(frameData.pointLights[i]);
+		perViewCBuffer.pointlights[i].position = pointLight.position;
+		memcpy(&perViewCBuffer.pointlights[i].color, pointLight.color.Raw(), sizeof(float3));
+		perViewCBuffer.pointlights[i].intensity = pointLight.intensity;
+	}
+	data.psCbv.buffer.Update(&perViewCBuffer, sizeof(perViewCBuffer));
 
 	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -146,7 +168,9 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	commandList.SetSignature(&data.rootSignature);
 
 	commandList.SetConstant(0, data.vsCbv);
+
 	commandList.SetConstant(1, data.psCbv);
+
 	Texture indirects[] = { data.irradianceMap, data.prefilteredEnvMap };
 	commandList.SetReadOnlyResource(1, indirects, 2, D3D12_SRV_DIMENSION_TEXTURECUBE);
 	commandList.SetReadOnlyResource(2, &data.LUT, 1);
@@ -154,22 +178,22 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	{
 		commandList.SetPipeline(data.pso);
 		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::None);
+		uint32_t count = 0;
 		for (auto &i : meshes)
 		{
-			const Mesh &mesh = Meshes::Get(i);
-			const auto &material = Materials::Get(mesh.m_MaterialID);
+			const Mesh &mesh = Mesh::Get(i);
+			const auto &material = Material::Get(mesh.m_MaterialID);
 
-			struct MaterialParameter
-			{
-				float params[8];
-			};
-			data.materialCbv.buffer.Update(&material.albedo, sizeof(MaterialParameter));
-			commandList.SetConstant(2, data.materialCbv);
+			size_t offset = 256 * count;
+			data.materialCbv.buffer.Update(&material.albedo, sizeof(MaterialParameter), offset);
+			commandList.SetConstant(2, data.materialCbv, offset);
 
 			VertexBuffer vertexBuffers[] = {mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords};
 			commandList.SetVertexBuffers(vertexBuffers, 4);
 			commandList.SetIndexBuffer(mesh.m_Indices);
 			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
+
+			count++;
 		}
 	}
 	{
@@ -178,10 +202,10 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::Textured);
 		for (auto &i : meshes)
 		{
-			const Mesh &mesh = Meshes::Get(i);
+			const Mesh &mesh = Mesh::Get(i);
 			uint32_t materialID = mesh.m_MaterialID;
 
-			commandList.SetReadOnlyResource(0, Materials::Get(materialID).m_Textures, 5);
+			commandList.SetReadOnlyResource(0, Material::Get(materialID).m_Textures, 5);
 			VertexBuffer vertexBuffers[] = {mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords};
 			commandList.SetVertexBuffers(vertexBuffers, 4);
 			commandList.SetIndexBuffer(mesh.m_Indices);
