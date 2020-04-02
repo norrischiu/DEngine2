@@ -3,7 +3,7 @@
 #include <DEGame/Component/Camera.h>
 #include <DEGame/Collection/Scene.h>
 #include <DERendering/RenderPass/ForwardPass.h>
-#include <DERendering/RenderPass/EquirectangularToCubemapPass.h>
+#include <DERendering/RenderPass/PrecomputeDiffuseIBLPass.h>
 #include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
 #include <DERendering/RenderPass/SkyboxPass.h>
 #include <DERendering/RenderPass/UIPass.h>
@@ -32,7 +32,7 @@ private:
 	DE::DrawCommandList m_commandList;
 
 	DE::ForwardPass m_forwardPass;
-	DE::EquirectangularToCubemapPass m_precomputeCubemapPass;
+	DE::PrecomputeDiffuseIBLPass m_precomputeDiffuseIBLPass;
 	DE::PrecomputeSpecularIBLPass m_precomputeSpecularIBLPass;
 	DE::SkyboxPass m_SkyboxPass;
 	DE::UIPass m_UIPass;

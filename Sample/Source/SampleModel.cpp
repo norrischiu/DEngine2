@@ -8,6 +8,7 @@
 #include <DERendering/Device/RenderDevice.h>
 #include <DERendering/Device/CopyCommandList.h>
 #include <DERendering/DataType/GraphicsDataType.h>
+#include <DERendering/DataType/LightType.h>
 #include <DERendering/Imgui/imgui.h>
 #include <DEGame/Loader/SceneLoader.h>
 #include <DEGame/Loader/TextureLoader.h>
@@ -22,11 +23,19 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	sceneLoader.Init(renderDevice);
 	sceneLoader.SetRootPath("..\\Assets\\");
 	sceneLoader.Load("SampleScene", m_scene);
+	{
+		uint32_t lightIndex = PointLight::Create();
+		PointLight& light = PointLight::Get(lightIndex);
+		m_scene.AddLight(lightIndex);
+		light.position = Vector3(0.0f, 5.0f, 0.0f);
+		light.color = Vector3(1.0f, 1.0f, 1.0f);
+		light.intensity = 1.0f;
+	}
 
 	TextureLoader texLoader;
 	texLoader.Init(renderDevice);
 	Texture equirectangularMap;
-	texLoader.Load(equirectangularMap, "..\\Assets\\ShaderBall\\Textures\\gym_entrance_1k.tex");
+	texLoader.Load(equirectangularMap, "..\\Assets\\SampleScene\\Textures\\gym_entrance_1k.tex");
 	Texture skybox;
 	skybox.Init(renderDevice->m_Device, 512, 512, 6, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	Texture irradianceMap;
@@ -40,7 +49,7 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	m_commandList.Init(renderDevice);
 
 	m_forwardPass.Setup(renderDevice, irradianceMap, prefilteredEnvMap, LUT);
-	m_precomputeCubemapPass.Setup(renderDevice, equirectangularMap, skybox, irradianceMap);
+	m_precomputeDiffuseIBLPass.Setup(renderDevice, equirectangularMap, skybox, irradianceMap);
 	m_precomputeSpecularIBLPass.Setup(renderDevice, skybox, prefilteredEnvMap, LUT);
 	m_SkyboxPass.Setup(renderDevice, *m_forwardPass.GetDepth(), skybox);
 	m_UIPass.Setup(renderDevice);
@@ -54,8 +63,8 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 
 	// Prepare frame data
 	m_scene.ForEachMesh([&](uint32_t index) {
-		const auto& mesh = Meshes::Get(index);
-		const auto type = Materials::Get(mesh.m_MaterialID).shadingType;
+		const auto& mesh = Mesh::Get(index);
+		const auto type = Material::Get(mesh.m_MaterialID).shadingType;
 		if (type == ShadingType::None)
 		{
 			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::None, index);
@@ -65,15 +74,19 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Textured, index);
 		}
 	});
+	m_scene.ForEachLight([&](uint32_t index) {
+		m_frameData.pointLights.push_back(index);
+	});
 	m_frameData.cameraWVP = m_Camera.GetCameraToScreen();
 	m_frameData.cameraView = m_Camera.GetV();
 	m_frameData.cameraProjection = m_Camera.GetP();
+	m_frameData.cameraPos = m_Camera.GetPosition();
 
 	// Render
 	m_commandList.Begin();
 	if (m_bFirstRun)
 	{
-		m_precomputeCubemapPass.Execute(m_commandList, m_frameData);
+		m_precomputeDiffuseIBLPass.Execute(m_commandList, m_frameData);
 		m_precomputeSpecularIBLPass.Execute(m_commandList, m_frameData);
 		m_bFirstRun = false;
 	}
@@ -85,6 +98,7 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 	// Reset
 	renderDevice.Reset();
 	m_frameData.batcher.Reset();
+	m_frameData.pointLights.clear();
 }
 
 void SampleModel::SetupUI()
@@ -92,12 +106,12 @@ void SampleModel::SetupUI()
 	bool active;
 	ImGui::Begin("Edit", &active);
 	m_scene.ForEachMesh([&](uint32_t index) {
-		auto &mesh = Meshes::Get(index);
+		auto &mesh = Mesh::Get(index);
 		char name[256];
 		sprintf_s(name, "mesh_%i", index);
 		if (ImGui::CollapsingHeader(name))
 		{
-			auto &material = Materials::Get(mesh.m_MaterialID);
+			auto &material = Material::Get(mesh.m_MaterialID);
 			sprintf_s(name, "mat_%i", mesh.m_MaterialID);
 			if (ImGui::TreeNode(name))
 			{

@@ -14,7 +14,7 @@ public:
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 
-	void Set(Vector<uint32_t>& meshes)
+	void SetMeshes(Vector<uint32_t>&& meshes)
 	{
 		m_meshes = std::move(meshes);
 	}
@@ -27,8 +27,21 @@ public:
 		}
 	}
 
+	void AddLight(uint32_t light)
+	{
+		m_lightes.push_back(light);
+	}
+	void ForEachLight(std::function<void(uint32_t)> func)
+	{
+		for (auto& light : m_lightes)
+		{
+			func(light);
+		}
+	}
+
 private:
 	Vector<uint32_t> m_meshes;
+	Vector<uint32_t> m_lightes;
 };
 
 }
