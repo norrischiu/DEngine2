@@ -12,7 +12,7 @@ class DrawCommandList;
 class FrameData;
 class Texture;
 
-class EquirectangularToCubemapPass
+class PrecomputeDiffuseIBLPass
 {
 	struct Data final
 	{
@@ -31,7 +31,7 @@ class EquirectangularToCubemapPass
 	};
 
 public:
-	EquirectangularToCubemapPass() = default;
+	PrecomputeDiffuseIBLPass() = default;
 
 	bool Setup(RenderDevice* renderDevice, const Texture& equirectangularMap, Texture& cubemap, Texture& irradianceMap);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);

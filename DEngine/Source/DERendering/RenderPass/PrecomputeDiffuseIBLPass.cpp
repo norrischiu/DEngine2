@@ -1,7 +1,7 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/Device/RenderDevice.h>
 #include <DERendering/DataType/GraphicsDataType.h>
-#include <DERendering/RenderPass/EquirectangularToCubemapPass.h>
+#include <DERendering/RenderPass/PrecomputeDiffuseIBLPass.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
 #include <DERendering/RenderConstant.h>
@@ -11,7 +11,7 @@
 namespace DE
 {
 
-bool EquirectangularToCubemapPass::Setup(RenderDevice* renderDevice, const Texture& equirectangularMap, Texture& cubemap, Texture& irradianceMap)
+bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& equirectangularMap, Texture& cubemap, Texture& irradianceMap)
 {
 	Vector<char> vs;
 	Vector<char> ps;
@@ -20,7 +20,7 @@ bool EquirectangularToCubemapPass::Setup(RenderDevice* renderDevice, const Textu
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
 	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\SampleEquirectangular.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
-	Job* convolutePsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteEquirectangular.ps.cso", convolutePs);
+	Job* convolutePsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteIrradianceMap.ps.cso", convolutePs);
 	JobScheduler::Instance()->WaitOnMainThread(convolutePsCounter);
 
 	{
@@ -114,7 +114,7 @@ bool EquirectangularToCubemapPass::Setup(RenderDevice* renderDevice, const Textu
 	return true;
 }
 
-void EquirectangularToCubemapPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
+void PrecomputeDiffuseIBLPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 {
 	commandList.SetViewportAndScissorRect(0, 0, data.dst.m_Desc.Width, data.dst.m_Desc.Height, 1.0f, 10.0f);
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
