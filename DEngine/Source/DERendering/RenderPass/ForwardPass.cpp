@@ -11,7 +11,7 @@
 namespace DE
 {
 
-void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Texture &prefilteredEnvMap, Texture &LUT)
+void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 {
 	Vector<char> vs;
 	Vector<char> ps;
@@ -41,14 +41,14 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 			{1, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER},
 		};
 
-		data.rootSignature.Add(constants, 3);
-		data.rootSignature.Add(readOnly, 3);
-		data.rootSignature.Add(samplers, 2);
-		data.rootSignature.Finalize(renderDevice->m_Device);
+		m_rootSignature.Add(constants, 3);
+		m_rootSignature.Add(readOnly, 3);
+		m_rootSignature.Add(samplers, 2);
+		m_rootSignature.Finalize(renderDevice->m_Device);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = data.rootSignature.ptr;
+		desc.pRootSignature = m_rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
 		VS.pShaderBytecode = vs.data();
 		VS.BytecodeLength = vs.size();
@@ -88,7 +88,7 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		desc.DepthStencilState = depthStencilDesc;
 
-		data.pso.Init(renderDevice->m_Device, desc);
+		m_pso.Init(renderDevice->m_Device, desc);
 
 		{
 			D3D12_SHADER_BYTECODE PS;
@@ -96,29 +96,19 @@ void ForwardPass::Setup(RenderDevice *renderDevice, Texture &irradianceMap, Text
 			PS.BytecodeLength = texturedPs.size();
 			desc.PS = PS;
 
-			data.texturedPso.Init(renderDevice->m_Device, desc);
+			m_texturedPso.Init(renderDevice->m_Device, desc);
 		}
 	}
 	{
-		D3D12_CLEAR_VALUE clearValue = {};
-		clearValue.DepthStencil.Depth = 1.0f;
-		clearValue.Format = DXGI_FORMAT_D32_FLOAT;
-		data.depth.Init(renderDevice->m_Device, 1024, 768, 1, 1, DXGI_FORMAT_D32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &clearValue);
+		m_vsCbv.Init(renderDevice->m_Device, 256);
+		m_psCbv.Init(renderDevice->m_Device, 256);
 	}
 	{
-		data.vsCbv.Init(renderDevice->m_Device, 256);
-		data.psCbv.Init(renderDevice->m_Device, 256);
-	}
-	{
-		data.materialCbv.Init(renderDevice->m_Device, 256 * 32);
-	}
-	{
-		data.irradianceMap = irradianceMap;
-		data.prefilteredEnvMap = prefilteredEnvMap;
-		data.LUT = LUT;
+		m_materialCbv.Init(renderDevice->m_Device, 256 * 32);
 	}
 
-	data.pDevice = renderDevice;
+	m_data = data;
+	m_pDevice = renderDevice;
 }
 
 void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameData)
@@ -131,7 +121,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	} perObjectCBuffer;
 	perObjectCBuffer.world = Matrix4::Identity;
 	perObjectCBuffer.wvp = frameData.cameraWVP;
-	data.vsCbv.buffer.Update(&perObjectCBuffer, sizeof(perObjectCBuffer));
+	m_vsCbv.buffer.Update(&perObjectCBuffer, sizeof(perObjectCBuffer));
 
 	struct
 	{
@@ -153,30 +143,30 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		memcpy(&perViewCBuffer.pointlights[i].color, pointLight.color.Raw(), sizeof(float3));
 		perViewCBuffer.pointlights[i].intensity = pointLight.intensity;
 	}
-	data.psCbv.buffer.Update(&perViewCBuffer, sizeof(perViewCBuffer));
+	m_psCbv.buffer.Update(&perViewCBuffer, sizeof(perViewCBuffer));
 
-	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList.ResourceBarrier(*m_pDevice->GetBackBuffer(m_backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
 
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 0.1f};
-	RenderTargetView::Desc rtv{data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0};
-	commandList.SetRenderTargetDepth(&rtv, 1, &data.depth, ClearFlag::Color | ClearFlag::Depth, clearColor, 1.0f);
+	RenderTargetView::Desc rtv{ m_pDevice->GetBackBuffer(m_backBufferIndex), 0, 0};
+	commandList.SetRenderTargetDepth(&rtv, 1, &m_data.depth, ClearFlag::Color | ClearFlag::Depth, clearColor, 1.0f);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList.SetSignature(&data.rootSignature);
+	commandList.SetSignature(&m_rootSignature);
 
-	commandList.SetConstant(0, data.vsCbv);
+	commandList.SetConstant(0, m_vsCbv);
 
-	commandList.SetConstant(1, data.psCbv);
+	commandList.SetConstant(1, m_psCbv);
 
-	Texture indirects[] = { data.irradianceMap, data.prefilteredEnvMap };
+	Texture indirects[] = { m_data.irradianceMap, m_data.prefilteredEnvMap };
 	commandList.SetReadOnlyResource(1, indirects, 2, D3D12_SRV_DIMENSION_TEXTURECUBE);
-	commandList.SetReadOnlyResource(2, &data.LUT, 1);
+	commandList.SetReadOnlyResource(2, &m_data.BRDFIntegrationMap, 1);
 
 	{
-		commandList.SetPipeline(data.pso);
+		commandList.SetPipeline(m_pso);
 		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::None);
 		uint32_t count = 0;
 		for (auto &i : meshes)
@@ -185,8 +175,8 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			const auto &material = Material::Get(mesh.m_MaterialID);
 
 			size_t offset = 256 * count;
-			data.materialCbv.buffer.Update(&material.albedo, sizeof(MaterialParameter), offset);
-			commandList.SetConstant(2, data.materialCbv, offset);
+			m_materialCbv.buffer.Update(&material.albedo, sizeof(MaterialParameter), offset);
+			commandList.SetConstant(2, m_materialCbv, offset);
 
 			VertexBuffer vertexBuffers[] = {mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords};
 			commandList.SetVertexBuffers(vertexBuffers, 4);
@@ -197,7 +187,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		}
 	}
 	{
-		commandList.SetPipeline(data.texturedPso);
+		commandList.SetPipeline(m_texturedPso);
 
 		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::Textured);
 		for (auto &i : meshes)
@@ -213,7 +203,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		}
 	}
 
-	data.backBufferIndex = 1 - data.backBufferIndex;
+	m_backBufferIndex = 1 - m_backBufferIndex;
 }
 
 } // namespace DE

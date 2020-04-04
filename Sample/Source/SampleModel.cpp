@@ -36,22 +36,36 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	texLoader.Init(renderDevice);
 	Texture equirectangularMap;
 	texLoader.Load(equirectangularMap, "..\\Assets\\SampleScene\\Textures\\gym_entrance_1k.tex");
+	Texture depth;
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.DepthStencil.Depth = 1.0f;
+	clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	depth.Init(renderDevice->m_Device, 1024, 768, 1, 1, DXGI_FORMAT_D32_FLOAT, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &clearValue);
 	Texture skybox;
 	skybox.Init(renderDevice->m_Device, 512, 512, 6, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	Texture irradianceMap;
 	irradianceMap.Init(renderDevice->m_Device, 32, 32, 6, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	Texture prefilteredEnvMap;
 	prefilteredEnvMap.Init(renderDevice->m_Device, 128, 128, 6, 5, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
-	Texture LUT;
-	LUT.Init(renderDevice->m_Device, 512, 512, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+	Texture BRDFIntegrationMap;
+	BRDFIntegrationMap.Init(renderDevice->m_Device, 512, 512, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+	Texture LTCInverseMatrixMap;
+	Texture LTCNormMap;
 
 	m_Camera.Init(Vector3(0.0f, 0.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f);
 	m_commandList.Init(renderDevice);
 
-	m_forwardPass.Setup(renderDevice, irradianceMap, prefilteredEnvMap, LUT);
+	{
+		ForwardPass::Data data;
+		data.depth = depth;
+		data.irradianceMap = irradianceMap;
+		data.prefilteredEnvMap = prefilteredEnvMap;
+		data.BRDFIntegrationMap = BRDFIntegrationMap;
+		m_forwardPass.Setup(renderDevice, data);
+	}
 	m_precomputeDiffuseIBLPass.Setup(renderDevice, equirectangularMap, skybox, irradianceMap);
-	m_precomputeSpecularIBLPass.Setup(renderDevice, skybox, prefilteredEnvMap, LUT);
-	m_SkyboxPass.Setup(renderDevice, *m_forwardPass.GetDepth(), skybox);
+	m_precomputeSpecularIBLPass.Setup(renderDevice, skybox, prefilteredEnvMap, BRDFIntegrationMap);
+	m_SkyboxPass.Setup(renderDevice, depth, skybox);
 	m_UIPass.Setup(renderDevice);
 }
 

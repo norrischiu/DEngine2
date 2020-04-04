@@ -12,38 +12,33 @@ class FrameData;
 
 class ForwardPass
 {
+public:
 	struct Data final
 	{
-		GraphicsPipelineState pso;
-		GraphicsPipelineState texturedPso;
-		RootSignature rootSignature;
 		Texture depth;
 		Texture irradianceMap;
 		Texture prefilteredEnvMap;
-		Texture LUT;
-		uint32_t backBufferIndex = 0;
-
-		ConstantBufferView vsCbv;
-		ConstantBufferView psCbv;
-		ConstantBufferView materialCbv;
-
-		RenderDevice* pDevice;
+		Texture BRDFIntegrationMap;
+		Texture LTCInverseMatrixMap;
+		Texture LTCNormMap;
 	};
 
-public:
 	ForwardPass() = default;
 
-	void Setup(RenderDevice* renderDevice, Texture& irradianceMap, Texture& prefilteredEnvMap, Texture& LUT);
+	void Setup(RenderDevice* renderDevice, const Data& data);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
-	// temp
-	Texture* GetDepth()
-	{
-		return &data.depth;
-	}
-
 private:
-	Data data;
+	Data m_data;
+	RenderDevice* m_pDevice;
+
+	uint32_t m_backBufferIndex = 0;
+	GraphicsPipelineState m_pso;
+	GraphicsPipelineState m_texturedPso;
+	RootSignature m_rootSignature;
+	ConstantBufferView m_vsCbv;
+	ConstantBufferView m_psCbv;
+	ConstantBufferView m_materialCbv;
 };
 
 } // namespace DE
