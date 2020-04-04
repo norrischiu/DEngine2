@@ -26,6 +26,7 @@ project "Sample"
 		"Source/**.h", 
 		"Source/**.cpp",
 		"Assets/Shader/**.hlsl"
+		"Assets/Shader/**.hlsli"
 	}
 
 	filter "configurations:Debug"
