@@ -25,7 +25,7 @@ project "Sample"
 	{ 
 		"Source/**.h", 
 		"Source/**.cpp",
-		"Assets/Shader/**.hlsl"
+		"Assets/Shader/**.hlsl",
 		"Assets/Shader/**.hlsli"
 	}
 
