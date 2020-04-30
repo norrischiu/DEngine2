@@ -29,6 +29,13 @@ struct float4 final
 	float x, y, z, w;
 
 	inline float4() = default;
+	inline float4(float x, float y, float z, float w)
+	{
+		this->x = x;
+		this->y = y;
+		this->z = z;
+		this->w = w;
+	}
 	inline float4(const float3 xyz, const float w)
 	{
 		this->x = xyz.x;

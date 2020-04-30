@@ -24,12 +24,52 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	sceneLoader.SetRootPath("..\\Assets\\");
 	sceneLoader.Load("SampleScene", m_scene);
 	{
-		uint32_t lightIndex = PointLight::Create();
-		PointLight& light = PointLight::Get(lightIndex);
-		m_scene.AddLight(lightIndex);
-		light.position = Vector3(0.0f, 5.0f, 0.0f);
-		light.color = Vector3(1.0f, 1.0f, 1.0f);
+		auto& light = PointLight::Create();
+		m_scene.Add(light);
+		light.position = float3{ 0.0f, 5.0f, 0.0f };
+		light.color = float3{ 1.0f, 1.0f, 1.0f };
 		light.intensity = 1.0f;
+		light.enable = true;
+	}
+	{
+		QuadLight& light = QuadLight::Create();
+		m_scene.Add(light);
+		light.position = float3{ 0.0f, 0.0f, 5.0f };
+		light.width = 4.0f;
+		light.height = 4.0f;
+		light.color = float3{ 1.0f, 1.0f, 1.0f };
+		light.intensity = 1.0f;
+		light.enable = true;
+
+		Mesh& mesh = Mesh::Create();
+		light.mesh = mesh.Index();
+		m_scene.Add(mesh);
+		{
+			float x = light.position.x + light.width / 2.0f;
+			float y = light.position.y + light.height / 2.0f;
+			float z = light.position.z;
+			float vertices[] = {
+				-x, y, z,
+				x, y, z,
+				x, -y, z,
+				-x, -y, z
+			};
+			mesh.m_Vertices.Init(renderDevice->m_Device, sizeof(float3), sizeof(vertices));
+			mesh.m_Vertices.Update(vertices, sizeof(vertices));
+		}
+		{
+			uint3 indices[] = { {0, 1, 2}, {2, 3, 0} };
+			constexpr uint32_t size = 2 * sizeof(uint3);
+			mesh.m_Indices.Init(renderDevice->m_Device, sizeof(uint32_t), size);
+			mesh.m_Indices.Update(indices, size);
+			mesh.m_iNumIndices = 6;
+		}
+		{
+			Material& material = Material::Create();
+			material.albedo = float3{ 1.0f, 1.0f, 1.0f };
+			material.shadingType = ShadingType::AlbedoOnly;
+			mesh.m_MaterialID = material.Index();
+		}
 	}
 
 	TextureLoader texLoader;
@@ -50,9 +90,11 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	Texture BRDFIntegrationMap;
 	BRDFIntegrationMap.Init(renderDevice->m_Device, 512, 512, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	Texture LTCInverseMatrixMap;
+	texLoader.Load(LTCInverseMatrixMap, "..\\Assets\\SampleScene\\Textures\\LTCInverseMatrixMap.tex", DXGI_FORMAT_R16G16B16A16_UNORM);
 	Texture LTCNormMap;
+	texLoader.Load(LTCNormMap, "..\\Assets\\SampleScene\\Textures\\LTCNormMap.tex", DXGI_FORMAT_R16G16B16A16_UNORM);
 
-	m_Camera.Init(Vector3(0.0f, 0.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 1.0f, 100.0f);
+	m_Camera.Init(Vector3(0.0f, 0.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
 	m_commandList.Init(renderDevice);
 
 	{
@@ -61,6 +103,8 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 		data.irradianceMap = irradianceMap;
 		data.prefilteredEnvMap = prefilteredEnvMap;
 		data.BRDFIntegrationMap = BRDFIntegrationMap;
+		data.LTCInverseMatrixMap = LTCInverseMatrixMap;
+		data.LTCNormMap = LTCNormMap;
 		m_forwardPass.Setup(renderDevice, data);
 	}
 	m_precomputeDiffuseIBLPass.Setup(renderDevice, equirectangularMap, skybox, irradianceMap);
@@ -76,20 +120,32 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 	m_Camera.ParseInput(dt);
 
 	// Prepare frame data
-	m_scene.ForEachMesh([&](uint32_t index) {
-		const auto& mesh = Mesh::Get(index);
+	m_scene.ForEach<Mesh>([&](Mesh& mesh) {
 		const auto type = Material::Get(mesh.m_MaterialID).shadingType;
 		if (type == ShadingType::None)
 		{
-			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::None, index);
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::None, mesh);
 		}
 		else if (type == ShadingType::Textured)
 		{
-			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Textured, index);
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Textured, mesh);
+		}
+		else if (type == ShadingType::AlbedoOnly) 
+		{
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::AlbedoOnly, mesh);
 		}
 	});
-	m_scene.ForEachLight([&](uint32_t index) {
-		m_frameData.pointLights.push_back(index);
+	m_scene.ForEach<PointLight>([&](PointLight& light) {
+		if (light.enable)
+		{
+			m_frameData.pointLights.push_back(light.Index());
+		}
+	});
+	m_scene.ForEach<QuadLight>([&](QuadLight& light) {
+		if (light.enable)
+		{
+			m_frameData.quadLights.push_back(light.Index());
+		}
 	});
 	m_frameData.cameraWVP = m_Camera.GetCameraToScreen();
 	m_frameData.cameraView = m_Camera.GetV();
@@ -113,16 +169,16 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 	renderDevice.Reset();
 	m_frameData.batcher.Reset();
 	m_frameData.pointLights.clear();
+	m_frameData.quadLights.clear();
 }
 
 void SampleModel::SetupUI()
 {
 	bool active;
 	ImGui::Begin("Edit", &active);
-	m_scene.ForEachMesh([&](uint32_t index) {
-		auto &mesh = Mesh::Get(index);
+	m_scene.ForEach<Mesh>([&](Mesh& mesh) {
 		char name[256];
-		sprintf_s(name, "mesh_%i", index);
+		sprintf_s(name, "mesh_%i", mesh.Index());
 		if (ImGui::CollapsingHeader(name))
 		{
 			auto &material = Material::Get(mesh.m_MaterialID);
@@ -135,6 +191,42 @@ void SampleModel::SetupUI()
 				ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f);
 				ImGui::TreePop();
 			}
+		}
+	});
+	m_scene.ForEach<PointLight>([&](PointLight& light) {
+		char name[256];
+		sprintf_s(name, "pointLight_%i", light.Index());
+		if (ImGui::CollapsingHeader(name))
+		{
+			ImGui::Checkbox("Enable", &light.enable);
+			ImGui::SliderFloat3("Position", &light.position.x, -50.0f, 50.0f);
+			ImGui::SliderFloat3("Color", &light.color.x, 0.0f, 1.0f);
+			ImGui::SliderFloat("Intensity", &light.intensity, 0.0f, 10.0f);
+		}
+	});
+	m_scene.ForEach<QuadLight>([&](QuadLight& light) {
+		char name[256];
+		sprintf_s(name, "quadLight_%i", light.Index());
+		if (ImGui::CollapsingHeader(name))
+		{
+			ImGui::Checkbox("Enable", &light.enable);
+			ImGui::SliderFloat3("Position", &light.position.x, -50.0f, 50.0f);
+			ImGui::SliderFloat("Width", &light.width, 0.0f, 50.0f);
+			ImGui::SliderFloat("Height", &light.height, 0.0f, 50.0f);
+			ImGui::SliderFloat3("Color", &light.color.x, 0.0f, 1.0f);
+			ImGui::SliderFloat("Intensity", &light.intensity, 0.0f, 10.0f);
+
+			float x = light.position.x + light.width / 2.0f;
+			float y = light.position.y + light.height / 2.0f;
+			float z = light.position.z;
+			float vertices[] = {
+				-x, y, z,
+				x, y, z,
+				x, -y, z,
+				-x, -y, z
+			};
+			Mesh& mesh = Mesh::Get(light.mesh);
+			mesh.m_Vertices.Update(vertices, sizeof(vertices));
 		}
 	});
 	ImGui::End();

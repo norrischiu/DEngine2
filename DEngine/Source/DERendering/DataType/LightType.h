@@ -12,8 +12,8 @@ struct PointLight final : public Pool<PointLight, 64>
 {
 public:
 	bool enable;
-	Vector3 position;
-	Vector3 color;
+	float3 position;
+	float3 color;
 	float intensity;
 };
 
@@ -22,9 +22,11 @@ struct QuadLight final : public Pool<QuadLight, 8>
 public:
 	bool enable;
 	float3 position;
-	float3 vertices[4];
+	float width;
+	float height;
 	float3 color;
 	float intensity;
+	uint32_t mesh;
 };
 
 }

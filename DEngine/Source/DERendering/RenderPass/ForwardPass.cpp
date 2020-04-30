@@ -152,9 +152,10 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		Vector4 eyePosWS;
 		uint32_t numPointLights;
 		uint32_t numQuadLights;
+		uint32_t padding[2];
 		struct
 		{
-			Vector4 position;
+			float4 position;
 			float3 color;
 			float intensity;
 		} pointLights[8];
@@ -170,18 +171,21 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	for (uint32_t i = 0; i < perViewCBuffer.numPointLights; ++i)
 	{
 		const auto& light = PointLight::Get(frameData.pointLights[i]);
-		perViewCBuffer.pointLights[i].position = light.position;
-		memcpy(&perViewCBuffer.pointLights[i].color, light.color.Raw(), sizeof(float3));
+		perViewCBuffer.pointLights[i].position = float4(light.position, 1.0f);
+		perViewCBuffer.pointLights[i].color = light.color;
 		perViewCBuffer.pointLights[i].intensity = light.intensity;
 	}	
 	perViewCBuffer.numQuadLights = static_cast<uint32_t>(frameData.quadLights.size());
 	for (uint32_t i = 0; i < perViewCBuffer.numQuadLights; ++i)
 	{
 		const auto& light = QuadLight::Get(frameData.quadLights[i]);
-		perViewCBuffer.quadLights[i].vertices[0] = float4(light.position + light.vertices[0], 1.0f);
-		perViewCBuffer.quadLights[i].vertices[1] = float4(light.position + light.vertices[1], 1.0f);
-		perViewCBuffer.quadLights[i].vertices[2] = float4(light.position + light.vertices[2], 1.0f);
-		perViewCBuffer.quadLights[i].vertices[3] = float4(light.position + light.vertices[3], 1.0f);
+		float x = light.position.x + light.width / 2.0f;
+		float y = light.position.y + light.height / 2.0f;
+		float z = light.position.z;
+		perViewCBuffer.quadLights[i].vertices[0] = float4(-x, y, z, 1.0f);
+		perViewCBuffer.quadLights[i].vertices[1] = float4(x, y, z, 1.0f);
+		perViewCBuffer.quadLights[i].vertices[2] = float4(x, -y, z, 1.0f);
+		perViewCBuffer.quadLights[i].vertices[3] = float4(-x, -y, z, 1.0f);
 		perViewCBuffer.quadLights[i].color = light.color;
 		perViewCBuffer.quadLights[i].intensity = light.intensity;
 	}
