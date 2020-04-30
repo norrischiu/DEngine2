@@ -235,7 +235,6 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 {
 	char path[256];
 	std::fstream fin;
-	Vector<uint32_t> meshes;
 
 	sprintf(path, "%s\\%s\\%s.scene", m_sRootPath.c_str(), sceneName, sceneName);
 	fin.open(path, std::fstream::in);
@@ -257,7 +256,7 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 			LoadToMaterialsData *data = new LoadToMaterialsData();
 			sprintf(data->path, "%s\\%s\\Materials\\", m_sRootPath.c_str(), sceneName);
 			strcpy(data->materialName, name.c_str());
-			const uint32_t index = Material::Create();
+			const uint32_t index = Material::Create().Index();
 			data->pMaterial = &Material::Get(index);
 			data->pDevice = m_pRenderDevice;
 			data->pCopyCommandList = &commandLists[i];
@@ -274,7 +273,6 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	uint32_t numModel = 0;
 	fin >> numModel;
 	Vector<Job::Desc> jobDescs(numModel);
-	meshes.reserve(numModel);
 	for (uint32_t i = 0; i < numModel; ++i)
 	{
 		std::string name;
@@ -285,14 +283,14 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 
 		LoadToMeshesData *data = new LoadToMeshesData();
 		strcpy(data->path, fileName);
-		const uint32_t index = Mesh::Create();
+		const uint32_t index = Mesh::Create().Index();
 		data->pMesh = &Mesh::Get(index);
 		data->pDevice = m_pRenderDevice;
 		data->pMatToID = &materialToID;
 		Job::Desc desc(&LoadToMeshes, data, nullptr);
 		jobDescs[i] = std::move(desc);
 
-		meshes.push_back(i);
+		scene.Add(*data->pMesh);
 	}
 	fin.close();
 
@@ -302,8 +300,6 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	m_pRenderDevice->Submit(commandLists.data(), 1);
 	m_pRenderDevice->Execute();
 	m_pRenderDevice->WaitForIdle();
-
-	scene.SetMeshes(std::move(meshes));
 }
 
 } // namespace DE
