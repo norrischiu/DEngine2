@@ -17,7 +17,7 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 	Vector<char> ps;
 	Vector<char> fullscreenVs;
 	Vector<char> convolutePs;
-	Job *vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Position.vs.cso", vs);
+	Job *vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso", vs);
 	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
 	Job *psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PrefilterEnvironmentMap.ps.cso", ps);
 	JobScheduler::Instance()->WaitOnMainThread(psCounter);
