@@ -19,7 +19,7 @@ public:
 
 	uint32_t Init(const GraphicsDevice& device);
 
-	void UploadTexture(uint8_t* source, uint32_t width, uint32_t height, uint32_t rowPitch, uint32_t depth, DXGI_FORMAT format, Texture& destination);
+	void UploadTexture(const uint8_t* source, uint32_t width, uint32_t height, uint32_t rowPitch, uint32_t depth, DXGI_FORMAT format, Texture& destination);
 	void CopyTexture(Texture source, Texture destination);
 
 	inline const CommandList& GetCommandList() const

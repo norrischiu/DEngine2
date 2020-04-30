@@ -22,7 +22,7 @@ uint32_t CopyCommandList::Init(const GraphicsDevice& device)
 	return 0;
 }
 
-void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t height, uint32_t rowPitch, uint32_t depth, DXGI_FORMAT format, Texture& destination)
+void CopyCommandList::UploadTexture(const uint8_t* source, uint32_t width, uint32_t height, uint32_t rowPitch, uint32_t depth, DXGI_FORMAT format, Texture& destination)
 {
 	uint32_t numComponent = 4;
 
@@ -33,7 +33,7 @@ void CopyCommandList::UploadTexture(uint8_t* source, uint32_t width, uint32_t he
 	footprint.Depth = depth;
 	footprint.RowPitch = rowPitch;
 
-	uint8_t* ptr = source;
+	const uint8_t* ptr = source;
 	size_t offset = m_Offset;
 	for (uint32_t y = 0; y < height; y++)
 	{
