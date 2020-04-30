@@ -13,6 +13,19 @@
 namespace DE
 {
 
+namespace detail
+{
+// only implemented for those in use
+uint32_t GetStride(DXGI_FORMAT format)
+{
+	if (format >= DXGI_FORMAT_R16G16B16A16_TYPELESS && format<= DXGI_FORMAT_R16G16B16A16_SINT) {
+		return 2;
+	}
+	else return 1;
+}
+}
+
+
 void TextureLoader::Init(RenderDevice* device)
 {
 	m_pRenderDevice = device;
@@ -27,7 +40,7 @@ struct LoadToMaterialsData
 	CopyCommandList* pCopyCommandList;
 };
 
-void TextureLoader::Load(Texture& texture, const char* path)
+void TextureLoader::Load(Texture& texture, const char* path, DXGI_FORMAT format/* = DXGI_FORMAT_R8G8B8A8_UNORM*/)
 {
 	CopyCommandList commandList;
 	commandList.Init(m_pRenderDevice->m_Device);
@@ -48,17 +61,10 @@ void TextureLoader::Load(Texture& texture, const char* path)
 		char* data = new char[size];
 		fin.read(data, size);
 
-		DXGI_FORMAT format = {};
-		switch (numComponent)
-		{
-		case 4:
-			format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			break;
-		default:
-			assert(false);
-		}
+		assert(numComponent == 4);
+
 		texture.Init(m_pRenderDevice->m_Device, width, height, 1, 1, format, D3D12_HEAP_TYPE_DEFAULT);
-		uint32_t rowPitch = Align(width * sizeof(char) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		uint32_t rowPitch = static_cast<uint32_t>(Align(width * detail::GetStride(format) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
 		commandList.UploadTexture(reinterpret_cast<uint8_t*>(data), width, height, rowPitch, 1, format, texture);
 
 		delete data;
@@ -69,6 +75,5 @@ void TextureLoader::Load(Texture& texture, const char* path)
 	m_pRenderDevice->Execute();
 	m_pRenderDevice->WaitForIdle();
 }
-
 }
 
