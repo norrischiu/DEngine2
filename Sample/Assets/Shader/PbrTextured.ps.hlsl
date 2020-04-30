@@ -15,8 +15,12 @@ struct VS_OUTPUT
 cbuffer PER_VIEW : register(b1)
 {
 	float3 g_eyePosWS;
+	float padding;
 	uint g_numPointLights;
-	Light g_pointLights[8];
+	uint g_numQuadLights;
+	float2 padding2;
+	PointLight g_pointLights[8];
+	QuadLight g_quadLights[8];
 }
 
 Texture2D<float3> AlbedoTex : register(t0);
@@ -27,6 +31,8 @@ Texture2D<float3> AOTex : register(t4);
 TextureCube irradianceMap : register(t5);
 TextureCube prefilteredEnvMap : register(t6);
 Texture2D BRDFIntegrationMap : register(t7);
+Texture2D LTCInverseMatrixMap : register(t8);
+Texture2D LTCNormMap : register(t9);
 sampler SurfaceSampler : register(s0);
 sampler MaterialTextureSampler : register(s1);
 
@@ -50,9 +56,13 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 		irradianceMap,
 		prefilteredEnvMap,
 		BRDFIntegrationMap,
+		LTCInverseMatrixMap,
+		LTCNormMap,
 		SurfaceSampler,
 		g_numPointLights,
+		g_numQuadLights,
 		g_pointLights,
+		g_quadLights,
 		IN.posWS.xyz,
 		g_eyePosWS,
 		N,

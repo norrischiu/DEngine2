@@ -18,6 +18,7 @@ public:
 
 	MaterialMeshBatcher batcher;
 	Vector<uint32_t> pointLights;
+	Vector<uint32_t> quadLights;
 	Vector3 cameraPos;
 	Matrix4 cameraView;
 	Matrix4 cameraProjection;

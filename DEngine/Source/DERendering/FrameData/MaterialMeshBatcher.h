@@ -2,6 +2,7 @@
 
 #include <DERendering/DERendering.h>
 #include <DECore/Container/Vector.h>
+#include <DERendering/DataType/GraphicsDataType.h>
 
 namespace DE
 {
@@ -13,15 +14,16 @@ public:
 	enum class Flag : uint8_t
 	{
 		None = 0,
+		AlbedoOnly,
 		Textured,
 		Count,
 	};
 
 	MaterialMeshBatcher() = default;
 
-	void Add(Flag flag, uint32_t mesh)
+	void Add(Flag flag, Mesh mesh)
 	{
-		m_meshes[(uint32_t)flag].push_back(mesh);
+		m_meshes[(uint32_t)flag].push_back(mesh.Index());
 	}
 
 	void Reset()

@@ -35,6 +35,7 @@ private:
 	uint32_t m_backBufferIndex = 0;
 	GraphicsPipelineState m_pso;
 	GraphicsPipelineState m_texturedPso;
+	GraphicsPipelineState m_albedoOnlyPso;
 	RootSignature m_rootSignature;
 	ConstantBufferView m_vsCbv;
 	ConstantBufferView m_psCbv;

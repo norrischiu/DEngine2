@@ -8,19 +8,34 @@
 
 namespace DE
 {
-struct float4 final
-{
-	float x, y, z, w;
-};
 
+struct float2 final
+{
+	float x, y;
+}; 
+	
 struct float3 final
 {
 	float x, y, z;
 };
 
-struct float2 final
+inline float3 operator+(const float3 lhs, const float3 rhs)
 {
-	float x, y;
+	return float3{ lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z };
+}
+
+struct float4 final
+{
+	float x, y, z, w;
+
+	inline float4() = default;
+	inline float4(const float3 xyz, const float w)
+	{
+		this->x = xyz.x;
+		this->y = xyz.y;
+		this->z = xyz.z;
+		this->w = w;
+	}
 };
 
 struct uint3 final
@@ -31,6 +46,7 @@ struct uint3 final
 enum ShadingType : uint8_t
 {
 	None,
+	AlbedoOnly,
 	Textured,
 };
 
@@ -57,7 +73,6 @@ struct Material final : public Pool<Material, 512>
 /**	@brief Contains vertex and index buffer of a mesh*/
 struct Mesh final : public Pool<Mesh, 512>
 {
-
 public:
 	VertexBuffer m_Vertices;
 	VertexBuffer m_Normals;

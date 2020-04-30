@@ -1,5 +1,5 @@
+#pragma pack_matrix( row_major )
 #include "Pbr.hlsli"
-#include "Light.hlsli"
 
 struct VS_OUTPUT
 {
@@ -15,8 +15,12 @@ struct VS_OUTPUT
 cbuffer PER_VIEW : register(b1)
 {
 	float3 g_eyePosWS;
+	float padding;
 	uint g_numPointLights;
-	Light g_pointLights[8];
+	uint g_numQuadLights;
+	float2 padding2;
+	PointLight g_pointLights[8];
+	QuadLight g_quadLights[8];
 }
 
 cbuffer PER_MATERIAL : register(b2)
@@ -30,20 +34,25 @@ cbuffer PER_MATERIAL : register(b2)
 TextureCube irradianceMap : register(t5);
 TextureCube prefilteredEnvMap : register(t6);
 Texture2D BRDFIntegrationMap : register(t7);
+Texture2D LTCInverseMatrixMap : register(t8);
+Texture2D LTCNormMap : register(t9);
 sampler SurfaceSampler : register(s0);
 
 float4 main(VS_OUTPUT IN) : SV_TARGET
 {
-	float3 N = normalize(IN.normal);
-
+	float3 N = normalize(IN.normal.xyz);
 
 	float3 color = PbrShading(
 					irradianceMap,
 					prefilteredEnvMap,
 					BRDFIntegrationMap,
+					LTCInverseMatrixMap,
+					LTCNormMap,
 					SurfaceSampler,
 					g_numPointLights,
+					g_numQuadLights, 
 					g_pointLights,
+					g_quadLights,
 					IN.posWS.xyz,
 					g_eyePosWS,
 					N,

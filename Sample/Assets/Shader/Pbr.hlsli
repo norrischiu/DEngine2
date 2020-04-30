@@ -1,8 +1,7 @@
 // Pbr.hlsli: header file for pbr related calculation
 #ifndef PBR_HLSLI
 #define PBR_HLSLI
-
-#include "Light.hlsli"
+#pragma pack_matrix( row_major )
 
 static const float PI = 3.14159265359;
 
@@ -46,6 +45,7 @@ float Geometry_SchlickGGX(float NdotV, float roughness)
 
 	return nom / denom;
 }
+// height correlated Smith masking and shadowing
 float Geometry_Smith(float3 N, float3 V, float3 L, float k)
 {
 	float NdotV = saturate(dot(N, V));
@@ -137,13 +137,19 @@ float3 ImportanceSample_InverseCDF_GGX(float2 U, float3 N, float roughness)
     return normalize(sampleVec);
 }
 
+#include "Light.hlsli"
+
 float3 PbrShading(
 	TextureCube irradianceMap,
 	TextureCube prefilteredEnvMap,
 	Texture2D BRDFIntegrationMap,
+	Texture2D LTCInverseMatrixMap,
+	Texture2D LTCNormMap,
 	sampler SurfaceSampler,
-	uint numLight,
-	Light pointLights[8],
+	uint numPointLight,
+	uint numQuadLight,
+	PointLight pointLights[8],
+	QuadLight quadLights[8],
 	float3 posWS,
 	float3 eyePosWS,
 	float3 N,
@@ -165,33 +171,23 @@ float3 PbrShading(
 	float3 kS = F;
 	float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
 	kD *= 1.0 - metallic;
+	float3 refractedDiffuse = kD * albedo / PI; // Kd * f lambert
+
+	float3 Lo = float3(0.0f, 0.0f, 0.0f);
+	uint i = 0;
+	for (; i < numPointLight; ++i)
+	{
+		Lo += EvaluatePointLightIrradiance(pointLights[i], posWS, N, V, roughness, refractedDiffuse, F);
+	}
+	for (i = 0; i < numQuadLight; ++i) 
+	{
+		Lo += EvaluateQuadLightIrradiance(quadLights[i], LTCInverseMatrixMap, LTCNormMap, SurfaceSampler, posWS, N, V, roughness);
+	}
 
 	// indirect specular
 	float3 prefilteredSpecular = prefilteredEnvMap.SampleLevel(SurfaceSampler, R, roughness * 4.0f).rgb;
 	float2 specularBrdf = BRDFIntegrationMap.Sample(SurfaceSampler, float2(saturate(dot(N, V)), roughness)).rg;
 	float3 indirectSpecular = prefilteredSpecular * (F * specularBrdf.x + specularBrdf.y);
-
-	float3 Lo = float3(0.0f, 0.0f, 0.0f);
-	for (uint i = 0; i < numLight; ++i)
-	{
-		float3 L = normalize(pointLights[i].positionWS - posWS).xyz;
-		float3 H = normalize(V + L);
-		float distance = length(pointLights[i].positionWS - posWS);
-		float attenuation = 1.0 / (distance * distance);
-		float3 radiance = pointLights[i].color * pointLights[i].intensity * attenuation;
-
-		// cook-torrance brdf
-		float NDF = NDF_GGX(N, H, roughness);
-		float G = Geometry_Smith(N, V, L, roughness);
-
-		float3 numerator = NDF * G * F;
-		float denominator = 4.0 * saturate(dot(N, V)) * saturate(dot(N, L));
-		float3 specular = numerator / max(denominator, 0.001);
-
-		// add to outgoing radiance Lo
-		float NdotL = saturate(dot(N, L));
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-	}
 
 	// indirect diffuse
 	float3 irradiance = irradianceMap.Sample(SurfaceSampler, N).rgb;
