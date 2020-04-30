@@ -2,6 +2,8 @@
 
 #include <DEGame/DEGame.h>
 #include <DECore/Container/Vector.h>
+#include <DERendering/DataType/LightType.h>
+#include <DERendering/DataType/GraphicsDataType.h>
 #include <functional>
 
 namespace DE 
@@ -10,38 +12,29 @@ namespace DE
 class Scene
 {
 public:
-	Scene() = default;
+	Scene()
+	{
+		m_objects.resize(64);
+	}
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 
-	void SetMeshes(Vector<uint32_t>&& meshes)
+	template <typename T>
+	void Add(const T& obj)
 	{
-		m_meshes = std::move(meshes);
+		m_objects[T::ObjectId()].push_back(obj.Index());
 	}
-
-	void ForEachMesh(std::function<void(uint32_t)> func)
+	template <typename T>
+	void ForEach(std::function<void(T&)> func) 
 	{
-		for (auto& mesh : m_meshes)
+		for (auto& obj : m_objects[T::ObjectId()])
 		{
-			func(mesh);
-		}
-	}
-
-	void AddLight(uint32_t light)
-	{
-		m_lightes.push_back(light);
-	}
-	void ForEachLight(std::function<void(uint32_t)> func)
-	{
-		for (auto& light : m_lightes)
-		{
-			func(light);
+			func(T::Get(obj));
 		}
 	}
 
 private:
-	Vector<uint32_t> m_meshes;
-	Vector<uint32_t> m_lightes;
+	Vector<Vector<uint32_t>> m_objects;
 };
 
 }

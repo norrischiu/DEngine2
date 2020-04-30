@@ -119,19 +119,23 @@ public:
 		m_iSize++;
 	}
 
-	/** @brief Resize the array
+	/** @brief Resize the array and construct all elements
 	*
 	*	@param size the new size
 	*/
 	void resize(size_t size)
 	{
 		reserve(size);
+		for (uint32_t i = m_iSize; i < size; ++i)
+		{
+			push_back(T());
+		}
 		m_iSize = size;
 	}	
 	
 	/** @brief Reserve the array's capavity
 	*
-	*	@param size the new capacity
+	*	@param capacity the new capacity
 	*/
 	void reserve(std::size_t capacity)
 	{
