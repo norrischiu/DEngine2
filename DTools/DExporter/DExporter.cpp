@@ -222,22 +222,31 @@ void ProcessMaterial(const aiScene *scene, std::vector<Material>& materials)
 	}
 }
 
-void ProcessTexture(std::vector<Texture>& textures, const char* path)
+bool ProcessTexture(std::vector<Texture>& textures, const char* path, const char*& error, uint32_t pitch = 1)
 {
 	Texture tex;
 	int x, y, n;
-	tex.data = stbi_load(path, &x, &y, &n, 4);
-	assert(tex.data);
+	if (pitch == 1) {
+		tex.data = stbi_load(path, &x, &y, &n, 4);
+	}
+	else if (pitch == 2) {
+		tex.data = reinterpret_cast<uint8_t*>(stbi_load_16(path, &x, &y, &n, 4));
+	}
+	if (!tex.data) {
+		error = stbi_failure_reason();
+		return false;
+	}
 	tex.width = x;
 	tex.height = y;
 	tex.numComponent = 4;
-	tex.size = x * y * 4;
+	tex.size = x * y * pitch * 4;
 
 	char filename[256];
 	_splitpath_s(path, NULL, 0, NULL, 0, filename, 256, NULL, 0);
 	tex.name = filename;
 
 	textures.push_back(tex);
+	return true;
 }
 
 void Export(const std::vector<Material>& materials, const char* path)
@@ -429,6 +438,10 @@ void Export(const std::vector<Texture>& textures, const char* path)
 
 int main(int argc, char *argv[])
 {
+	if (argc < 5) {
+		return 0;
+	}
+
 	const char* option = argv[1];
 	const char* inputPath = argv[2];
 	_splitpath_s(inputPath, NULL, 0, s_inputDirectory, 256, NULL, 0, NULL, 0);
@@ -457,11 +470,19 @@ int main(int argc, char *argv[])
 
 		Export(meshes, materials, outputPath, sceneName);
 	}
-	if (strcmp(option, "hdr") == 0)
+	if (strcmp(option, "texture") == 0)
 	{
 		std::vector<Texture> textures;
+		uint32_t pitch = 1;
+		if (argc > 5) {
+			pitch = atoi(argv[5]);
+		}
 
-		ProcessTexture(textures, inputPath);
+		const char* error = {};
+		if (!ProcessTexture(textures, inputPath, error, pitch)) {
+			std::cerr << "Parse textures failed because: " << error << '\n';
+			return 0;
+		}
 		Export(textures, outputPath);
 	}
 
