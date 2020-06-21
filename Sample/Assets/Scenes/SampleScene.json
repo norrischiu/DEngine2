@@ -1,0 +1,32 @@
+{
+    "outputDir": "Bin\\Assets\\",
+    "name": "SampleScene",
+    "models":[
+        {
+            "path": "Assets\\Models\\EnvironmentTest\\glTF\\EnvironmentTest.gltf"
+        },
+        {
+            "path": "Assets\\Models\\DamagedHelmet\\glTF\\DamagedHelmet.gltf"
+        },
+        {
+            "path": "Assets\\Models\\TwoSidedPlane\\glTF\\TwoSidedPlane.gltf"
+        }
+    ],
+    "textures":[
+        {
+            "path": "Assets\\Textures\\Gym\\gym_entrance_4k.hdr"
+        },
+        {
+            "path": "Assets\\Textures\\LTC\\LTCInverseMatrixMap.png",
+            "pitch": 2
+        },
+        {
+            "path": "Assets\\Textures\\LTC\\LTCNormMap.png",
+            "pitch": 2
+        },
+        {
+            "path": "Assets\\Textures\\LTC\\AreaLightTexture.png",
+            "genMip": true
+        }
+    ]
+}
