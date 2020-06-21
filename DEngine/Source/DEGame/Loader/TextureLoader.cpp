@@ -16,7 +16,7 @@ namespace DE
 namespace detail
 {
 // only implemented for those in use
-uint32_t GetStride(DXGI_FORMAT format)
+uint32_t GetPitch(DXGI_FORMAT format)
 {
 	if (format >= DXGI_FORMAT_R16G16B16A16_TYPELESS && format<= DXGI_FORMAT_R16G16B16A16_SINT) {
 		return 2;
@@ -26,50 +26,100 @@ uint32_t GetStride(DXGI_FORMAT format)
 }
 
 
-void TextureLoader::Init(RenderDevice* device)
+TextureLoader::TextureLoader(RenderDevice* device)
 {
 	m_pRenderDevice = device;
 }
 
-struct LoadToMaterialsData
+void TextureLoader::Load(CopyCommandList & commandList, Texture & texture, const char * path, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flag)
 {
-	char path[256];
-	char materialName[64];
-	Material* pMaterial;
-	RenderDevice* pDevice;
-	CopyCommandList* pCopyCommandList;
-};
-
-void TextureLoader::Load(Texture& texture, const char* path, DXGI_FORMAT format/* = DXGI_FORMAT_R8G8B8A8_UNORM*/)
-{
-	CopyCommandList commandList;
-	commandList.Init(m_pRenderDevice->m_Device);
-
 	std::ifstream fin;
 	fin.open(path, std::ifstream::in | std::ifstream::binary);
 	assert(!fin.fail());
 
-	// load the file content and upload to ID3D12Resource
+	std::size_t size = 0;
+	uint32_t width = 0, height = 0, numComponent = 0, numMip = 0;
+
+	fin.read(reinterpret_cast<char*>(&width), sizeof(width));
+	fin.read(reinterpret_cast<char*>(&height), sizeof(height));
+	fin.read(reinterpret_cast<char*>(&numComponent), sizeof(numComponent));
+	fin.read(reinterpret_cast<char*>(&numMip), sizeof(numMip));
+	fin.read(reinterpret_cast<char*>(&size), sizeof(size));
+	char* data = new char[size];
+	fin.read(data, size);
+
+	assert(numComponent == 4);
+
+	texture.Init(m_pRenderDevice->m_Device, width, height, 1, numMip, format, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST, flag);
+
+	size_t offset = 0;
+	uint32_t srcPitch = detail::GetPitch(format);
+	for (uint32_t i = 0; i < numMip; ++i)
 	{
-		std::size_t size = 0;
-		uint32_t width = 0, height = 0, numComponent = 0;
+		UploadTextureDesc desc;
+		desc.width = width >> i;
+		desc.height = height >> i;
+		desc.pitch = srcPitch;
+		uint32_t rowPitch = static_cast<uint32_t>(Align(desc.width * srcPitch * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
+		desc.rowPitch = rowPitch;
+		desc.subResourceIndex = i;
 
-		fin.read(reinterpret_cast<char*>(&width), sizeof(width));
-		fin.read(reinterpret_cast<char*>(&height), sizeof(height));
-		fin.read(reinterpret_cast<char*>(&numComponent), sizeof(numComponent));
-		fin.read(reinterpret_cast<char*>(&size), sizeof(size));
-		char* data = new char[size];
-		fin.read(data, size);
+		uint8_t* src = reinterpret_cast<uint8_t*>(data) + offset;
+		commandList.UploadTexture(src, desc, format, texture);
 
-		assert(numComponent == 4);
-
-		texture.Init(m_pRenderDevice->m_Device, width, height, 1, 1, format, D3D12_HEAP_TYPE_DEFAULT);
-		uint32_t rowPitch = static_cast<uint32_t>(Align(width * detail::GetStride(format) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
-		commandList.UploadTexture(reinterpret_cast<uint8_t*>(data), width, height, rowPitch, 1, format, texture);
-
-		delete data;
+		offset += desc.width * desc.height * numComponent * srcPitch;
 	}
-	fin.close();
+
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = texture.ptr.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+	commandList.GetCommandList().ptr->ResourceBarrier(1, &barrier);
+
+	delete data;
+}
+
+void TextureLoader::Load(Texture& texture, const char* path, DXGI_FORMAT format/* = DXGI_FORMAT_R8G8B8A8_UNORM*/, D3D12_RESOURCE_FLAGS flag /*= D3D12_RESOURCE_FLAG_NONE*/)
+{
+	CopyCommandList commandList;
+	commandList.Init(m_pRenderDevice->m_Device);
+
+	Load(commandList, texture, path, format, flag);
+
+	m_pRenderDevice->Submit(&commandList, 1);
+	m_pRenderDevice->Execute();
+	m_pRenderDevice->WaitForIdle();
+}
+
+void TextureLoader::LoadDefaultTexture()
+{
+	CopyCommandList commandList;
+	commandList.Init(m_pRenderDevice->m_Device);
+
+	Texture& white = Texture::WHITE;
+	white.Init(m_pRenderDevice->m_Device, 1, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	UploadTextureDesc desc;
+	desc.width = 1;
+	desc.height = 1;
+	desc.pitch = 1;
+	desc.rowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+	desc.subResourceIndex = 0;
+
+	uint32_t color = UINT_MAX;
+	commandList.UploadTexture(reinterpret_cast<uint8_t*>(&color), desc, DXGI_FORMAT_R8G8B8A8_UNORM, white);
+
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = white.ptr.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+	commandList.GetCommandList().ptr->ResourceBarrier(1, &barrier);
 
 	m_pRenderDevice->Submit(&commandList, 1);
 	m_pRenderDevice->Execute();

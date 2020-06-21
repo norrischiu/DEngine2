@@ -8,20 +8,17 @@
 #include <DECore/Job/JobScheduler.h>
 
 #include "SceneLoader.h"
+#include "TextureLoader.h"
 
 #include <fstream>
 
 namespace DE
-{
+{ 
 
-void SceneLoader::Init(RenderDevice *device)
+SceneLoader::SceneLoader(RenderDevice* device, const char* rootPath)
 {
 	m_pRenderDevice = device;
-}
-
-void SceneLoader::SetRootPath(const char *path)
-{
-	m_sRootPath = path;
+	m_sRootPath = rootPath;
 }
 
 struct LoadToMaterialsData
@@ -31,6 +28,7 @@ struct LoadToMaterialsData
 	Material *pMaterial;
 	RenderDevice *pDevice;
 	CopyCommandList *pCopyCommandList;
+	TextureLoader* pTexLoader;
 };
 
 void LoadToMaterials(void *data)
@@ -54,45 +52,25 @@ void LoadToMaterials(void *data)
 	uint32_t numTexture = 0;
 	fin >> numTexture;
 
-	for (uint32_t i = 0; i < numTexture; ++i)
+	for (uint32_t i = 0; i < ARRAYSIZE(mat.m_Textures); ++i)
 	{
 		std::string texturePath;
 		fin >> texturePath;
-		// load the file content and upload to ID3D12Resource
+		if (texturePath == "null")
 		{
-			std::ifstream fin;
-			std::size_t size = 0;
-			uint32_t width = 0, height = 0, numComponent = 0;
-
-			sprintf_s(tmp, "%s\\%s", pData->path, texturePath.c_str());
-			fin.open(tmp, std::ifstream::in | std::ifstream::binary);
-
-			fin.read(reinterpret_cast<char *>(&width), sizeof(width));
-			fin.read(reinterpret_cast<char *>(&height), sizeof(height));
-			fin.read(reinterpret_cast<char *>(&numComponent), sizeof(numComponent));
-			fin.read(reinterpret_cast<char *>(&size), sizeof(size));
-			char *data = new char[size];
-			fin.read(data, size);
-
-			DXGI_FORMAT format = {};
-			switch (numComponent)
-			{
-			case 4:
-				format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				break;
-			default:
-				assert(false);
-			}
-			mat.m_Textures[i].Init(pData->pDevice->m_Device, width, height, 1, 1, format);
-			uint32_t rowPitch = Align(width * sizeof(char) * numComponent, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-			pCommandList.UploadTexture(reinterpret_cast<uint8_t *>(data), width, height, rowPitch, 1, format, mat.m_Textures[i]);
-
-			delete data;
+			continue;
 		}
+		sprintf_s(tmp, "%s\\%s", pData->path, texturePath.c_str());
+
+		pData->pTexLoader->Load(pCommandList, mat.m_Textures[i], tmp);
 	}
 	fin.close();
 
-	if (numTexture == 5)
+	if (mat.m_Textures[1].ptr == nullptr)
+	{
+		mat.shadingType = ShadingType::NoNormalMap;
+	}
+	else if (numTexture > 0)
 	{
 		mat.shadingType = ShadingType::Textured;
 	}
@@ -245,7 +223,9 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	fin >> numMat;
 	Vector<Job::Desc> matJobDescs;
 	matJobDescs.reserve(numMat);
-	Vector<CopyCommandList> commandLists(numMat);
+	Vector<CopyCommandList> commandLists;
+	commandLists.reserve(numMat);
+	TextureLoader texLoader(m_pRenderDevice);
 	for (uint32_t i = 0; i < numMat; ++i)
 	{
 		std::string name;
@@ -259,11 +239,13 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 			const uint32_t index = Material::Create().Index();
 			data->pMaterial = &Material::Get(index);
 			data->pDevice = m_pRenderDevice;
-			data->pCopyCommandList = &commandLists[i];
+			commandLists.emplace_back();
+			data->pCopyCommandList = &commandLists.back();
+			data->pTexLoader = &texLoader;
 			Job::Desc desc(&LoadToMaterials, data, nullptr);
 			matJobDescs.push_back(std::move(desc));
 
-			materialToID.Add(name.c_str(), i);
+			materialToID.Add(name.c_str(), index);
 		}
 	}
 	auto *loadMatCounter = JobScheduler::Instance()->Run(matJobDescs);
@@ -297,7 +279,7 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	auto *loadMeshCounter = JobScheduler::Instance()->Run(jobDescs);
 	JobScheduler::Instance()->WaitOnMainThread(loadMeshCounter);
 
-	m_pRenderDevice->Submit(commandLists.data(), 1);
+	m_pRenderDevice->Submit(commandLists.data(), commandLists.size());
 	m_pRenderDevice->Execute();
 	m_pRenderDevice->WaitForIdle();
 }
