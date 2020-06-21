@@ -87,7 +87,7 @@ public:
 	*
 	*	@param item the item to be added
 	*/
-	void push_back(T& item)
+	void push_back(const T& item)
 	{
 		if (m_iCapacity == 0)
 		{
@@ -117,6 +117,27 @@ public:
 		}
 		((T*)m_hElements.Raw())[m_iSize] = std::move(item);
 		m_iSize++;
+	}
+
+	/** @brief Construct an element in place at the end of this array
+	*
+	*	@param args the parameter forward to T's constructor
+	*/
+	template<class... Args>
+	T& emplace_back(Args&&... args)
+	{
+		if (m_iCapacity == 0)
+		{
+			reserve(1);
+		}
+		if (m_iSize >= m_iCapacity)
+		{
+			reserve(m_iCapacity * 2);
+		}
+		new (&((T*)m_hElements.Raw())[m_iSize]) T(std::forward<Args>(args)...);
+		m_iSize++;
+
+		return ((T*)m_hElements.Raw())[m_iSize];
 	}
 
 	/** @brief Resize the array and construct all elements
