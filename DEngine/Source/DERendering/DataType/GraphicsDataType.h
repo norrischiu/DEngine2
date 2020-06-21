@@ -53,6 +53,7 @@ struct uint3 final
 enum ShadingType : uint8_t
 {
 	None,
+	NoNormalMap,
 	AlbedoOnly,
 	Textured,
 };
@@ -68,12 +69,12 @@ struct Material final : public Pool<Material, 512>
 	Material(const Material&) = delete;
 	Material& operator=(const Material&) = delete;
 	ShadingType shadingType;
-	Texture m_Textures[5];
+	Texture m_Textures[5] = {};
 	// 8 float
-	float3 albedo;
-	float metallic;
-	float roughness;
-	float ao;
+	float3 albedo = { 1.0f, 1.0f, 1.0f };
+	float metallic = 1.0f;
+	float roughness = 1.0f;
+	float ao = 1.0f;
 	float2 padding;
 };
 

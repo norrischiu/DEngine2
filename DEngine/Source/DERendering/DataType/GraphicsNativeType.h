@@ -141,7 +141,8 @@ class CommandList final
 public:
 	CommandList() = default;
 	CommandList(const CommandList&) = delete;
-	CommandList& operator=(const CommandList&) = delete;
+	CommandList& operator=(CommandList&&) = default;
+	CommandList& operator=(const CommandList&) = default;
 	~CommandList()
 	{
 		if (ptr)
@@ -178,9 +179,9 @@ public:
 		ptr->Close();
 	}
 
-	ID3D12GraphicsCommandList* ptr;
+	ID3D12GraphicsCommandList* ptr = nullptr;
 private:
-	ID3D12CommandAllocator* m_Allocator;
+	ID3D12CommandAllocator* m_Allocator = nullptr;
 };
 
 class DescriptorHeap final

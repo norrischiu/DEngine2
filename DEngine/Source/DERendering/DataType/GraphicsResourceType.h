@@ -61,6 +61,8 @@ public:
 	ComPtr<ID3D12Resource> ptr;
 	D3D12_RESOURCE_DESC m_Desc;
 	uint32_t m_iNumSubresources;
+
+	static Texture WHITE;
 };
 
 struct Buffer
@@ -69,6 +71,9 @@ public:
 
 	Buffer() = default;
 	Buffer(const Buffer&) = default;
+	Buffer(Buffer&&) = default;
+	Buffer& operator=(const Buffer&) = default;
+	Buffer& operator=(Buffer&& other) = default;
 	~Buffer() = default;
 
 	void Init(const GraphicsDevice& device, std::size_t size, D3D12_HEAP_TYPE heapType)
@@ -199,6 +204,11 @@ struct SamplerDefinition
 class RootSignature final
 {
 public:
+	enum Type
+	{
+		Graphics, Compute
+	};
+
 	RootSignature() = default;
 	RootSignature(const RootSignature&) = delete;
 	RootSignature& operator=(const RootSignature&) = delete;
@@ -214,6 +224,15 @@ public:
 			readOnlyResourceDefs[readOnlyResourceNum + i] = defs[i];
 		}
 		readOnlyResourceNum += num;
+	}	
+	
+	void Add(ReadWriteResourceDefinition* defs, uint32_t num)
+	{
+		for (uint32_t i = 0; i < num; ++i)
+		{
+			readWriteResourceDefs[readWriteResourceNum + i] = defs[i];
+		}
+		readWriteResourceNum += num;
 	}
 
 	void Add(ConstantDefinition* defs, uint32_t num)
@@ -234,11 +253,12 @@ public:
 		samplerNum += num;
 	}
 
-	void Finalize(const GraphicsDevice& device)
+	void Finalize(const GraphicsDevice& device, Type type)
 	{
 		D3D12_ROOT_SIGNATURE_DESC desc;
 		D3D12_ROOT_PARAMETER rootParameters[16];
-		D3D12_DESCRIPTOR_RANGE range[16];
+		D3D12_DESCRIPTOR_RANGE srvRange[16];
+		D3D12_DESCRIPTOR_RANGE uavRange[16];
 		D3D12_STATIC_SAMPLER_DESC samplers[4];
 		uint32_t index = 0;
 
@@ -250,13 +270,31 @@ public:
 
 			rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 			rootParameters[index].ShaderVisibility = readOnlyResourceDefs[i].visibility;
-			range[i].NumDescriptors = readOnlyResourceDefs[i].num;
-			range[i].BaseShaderRegister = readOnlyResourceDefs[i].baseRegister;
-			range[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			range[i].RegisterSpace = 0;
-			range[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			srvRange[i].NumDescriptors = readOnlyResourceDefs[i].num;
+			srvRange[i].BaseShaderRegister = readOnlyResourceDefs[i].baseRegister;
+			srvRange[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			srvRange[i].RegisterSpace = 0;
+			srvRange[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 			rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
-			rootParameters[index].DescriptorTable.pDescriptorRanges = &range[i];
+			rootParameters[index].DescriptorTable.pDescriptorRanges = &srvRange[i];
+			index++;
+		}
+
+		assert(readOnlyResourceNum <= 16);
+		
+		for (uint32_t i = 0; i < readWriteResourceNum; ++i)
+		{
+			readWriteResourceDefs[i].rootParameterIndex = index;
+
+			rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			rootParameters[index].ShaderVisibility = readWriteResourceDefs[i].visibility;
+			uavRange[i].NumDescriptors = readWriteResourceDefs[i].num;
+			uavRange[i].BaseShaderRegister = readWriteResourceDefs[i].baseRegister;
+			uavRange[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			uavRange[i].RegisterSpace = 0;
+			uavRange[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
+			rootParameters[index].DescriptorTable.pDescriptorRanges = &uavRange[i];
 			index++;
 		}
 
@@ -294,6 +332,7 @@ public:
 		desc.NumParameters = index;
 		desc.pParameters = rootParameters;
 
+		this->type = type;
 		Init(device, desc);
 	}
 
@@ -320,5 +359,63 @@ public:
 	uint32_t readWriteResourceNum = 0;
 	uint32_t constantNum = 0;
 	uint32_t samplerNum = 0;
+
+	Type type;
 };
+
+struct ReadOnlyResource final
+{
+	D3D12_SRV_DIMENSION dimension;
+	Texture texture;
+	uint32_t mip = 0;
+	uint32_t numMips = 1;
+	bool useTextureMipRange = true;
+
+	auto& Dimension(D3D12_SRV_DIMENSION dimension)
+	{
+		this->dimension = dimension;
+		return *this;
+	}
+	auto& Texture(const Texture& texture)
+	{
+		this->texture = texture;
+		return *this;
+	}
+	auto& MipRange(uint32_t mostDetailedMip, uint32_t leastDetailedMip)
+	{
+		this->mip = mostDetailedMip;
+		this->numMips = leastDetailedMip - mostDetailedMip + 1;
+		this->useTextureMipRange = false;
+		return *this;
+	}
+	auto& UseTextureMipRange()
+	{
+		useTextureMipRange = true;
+		return *this;
+	}
+};
+
+struct ReadWriteResource final
+{
+	D3D12_UAV_DIMENSION dimension;
+	Texture texture;
+	uint32_t mip = 0;
+
+	auto& Dimension(D3D12_UAV_DIMENSION dimension)
+	{
+		this->dimension = dimension;
+		return *this;
+	}	
+	auto& Texture(const Texture& texture)
+	{
+		this->texture = texture;
+		return *this;
+	}
+	auto& Mip(uint32_t mip)
+	{
+		this->mip = mip;
+		return *this;
+	}
+};
+
 }

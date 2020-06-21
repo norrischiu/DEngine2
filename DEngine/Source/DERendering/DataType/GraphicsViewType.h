@@ -12,39 +12,67 @@ namespace DE
 
 struct UnorderedAccessView
 {
-	ID3D12Resource* resource;
+	void Init(const GraphicsDevice& device, DescriptorHeap& heap, const ReadWriteResource& resource)
+	{
+		if (resource.dimension == D3D12_UAV_DIMENSION_TEXTURE2D)
+		{
+			desc.Texture2D.MipSlice = resource.mip;
+			desc.Texture2D.PlaneSlice = 0;
+		}
+		else 
+		{
+			assert(false); // not implemented
+		}
+		desc.Format = resource.texture.m_Desc.Format;
+		desc.ViewDimension = resource.dimension;
+
+		assert(desc.Format != DXGI_FORMAT_UNKNOWN);
+
+		descriptor = heap.current;
+		device.ptr->CreateUnorderedAccessView(resource.texture.ptr.Get(), nullptr, &desc, descriptor);
+		heap.Increment(1);
+	}
+
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
 	D3D12_CPU_DESCRIPTOR_HANDLE descriptor;
 };
 
 struct ShaderResourceView
 {
-	void Init(const GraphicsDevice& device, DescriptorHeap& heap, const Texture& texture, D3D12_SRV_DIMENSION viewDimension)
+	void Init(const GraphicsDevice& device, DescriptorHeap& heap, const ReadOnlyResource& resource)
 	{
-		if (viewDimension == D3D12_SRV_DIMENSION_TEXTURECUBE)
+		if (resource.dimension == D3D12_SRV_DIMENSION_TEXTURECUBE)
 		{
-			desc.TextureCube.MipLevels = texture.m_Desc.MipLevels;
+			desc.TextureCube.MipLevels = resource.texture.m_Desc.MipLevels;
 			desc.TextureCube.MostDetailedMip = 0;
 		}
-		else {
-			desc.Texture2D.MipLevels = 1;
-			desc.Texture2D.MostDetailedMip = 0;
+		else if (resource.dimension == D3D12_SRV_DIMENSION_TEXTURE2D) 
+		{
+			if (resource.useTextureMipRange)
+			{
+				desc.Texture2D.MipLevels = resource.texture.m_Desc.MipLevels;
+				desc.Texture2D.MostDetailedMip = 0;
+			}
+			else
+			{
+				desc.Texture2D.MipLevels = resource.numMips;
+				desc.Texture2D.MostDetailedMip = resource.mip;
+			}
 			desc.Texture2D.PlaneSlice = 0;
 		}
-		desc.Format = texture.m_Desc.Format;
-		desc.ViewDimension = viewDimension;
+		else 
+		{
+			assert(false); // not implemented
+		}
+		desc.Format = resource.texture.ptr == nullptr ? DXGI_FORMAT_R8G8B8A8_UNORM : resource.texture.m_Desc.Format; // allow null descriptor
+		desc.ViewDimension = resource.dimension;
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		
-		assert(desc.Format != DXGI_FORMAT_UNKNOWN);
-
 		descriptor = heap.current;
-		device.ptr->CreateShaderResourceView(texture.ptr.Get(), &desc, descriptor);
+		device.ptr->CreateShaderResourceView(resource.texture.ptr.Get(), &desc, descriptor);
 		heap.Increment(1);
-
-		resource = texture.ptr.Get();
 	}	
 
-	ID3D12Resource* resource;
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE descriptor;
 };
