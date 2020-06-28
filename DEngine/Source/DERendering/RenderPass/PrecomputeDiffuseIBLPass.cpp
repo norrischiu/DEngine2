@@ -26,12 +26,12 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 	{
 		ConstantDefinition constant = { 0, D3D12_SHADER_VISIBILITY_VERTEX };
 		ReadOnlyResourceDefinition readOnly = { 0, 1, D3D12_SHADER_VISIBILITY_PIXEL };
-		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
+		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_CLAMP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
 
 		data.rootSignature.Add(&constant, 1);
 		data.rootSignature.Add(&readOnly, 1);
 		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device);
+		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -56,7 +56,7 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 		desc.RasterizerState = rasterizerDesc;
 		desc.NumRenderTargets = 1;
-		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.RTVFormats[0] = cubemap.m_Desc.Format;
 		DXGI_SAMPLE_DESC sampleDesc = {};
 		sampleDesc.Count = 1;
 		desc.SampleMask = 0xffffff;
@@ -70,6 +70,8 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 		data.pso.Init(renderDevice->m_Device, desc);
 
 		{
+			desc.RTVFormats[0] = irradianceMap.m_Desc.Format;
+
 			D3D12_SHADER_BYTECODE PS;
 			PS.pShaderBytecode = convolutePs.data();
 			PS.BytecodeLength = convolutePs.size();
@@ -122,7 +124,7 @@ void PrecomputeDiffuseIBLPass::Execute(DrawCommandList& commandList, const Frame
 	commandList.SetSignature(&data.rootSignature);
 	commandList.SetPipeline(data.pso);
 
-	commandList.SetReadOnlyResource(0, &data.src, 1);
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.src).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D), 1);
 	commandList.SetVertexBuffers(&data.cubeVertices, 1);
 
 	for (uint32_t i = 0; i < 6; ++i)
@@ -139,7 +141,7 @@ void PrecomputeDiffuseIBLPass::Execute(DrawCommandList& commandList, const Frame
 	// convolute
 	commandList.SetViewportAndScissorRect(0, 0, data.irradianceMap.m_Desc.Width, data.irradianceMap.m_Desc.Height, 1.0f, 10.0f);
 	commandList.SetPipeline(data.convolutePso);
-	commandList.SetReadOnlyResource(0, &data.dst, 1, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.dst).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
 	commandList.SetVertexBuffers(&data.cubeVertices, 1);  // TODO: cache this
 
 	for (uint32_t i = 0; i < 6; ++i)

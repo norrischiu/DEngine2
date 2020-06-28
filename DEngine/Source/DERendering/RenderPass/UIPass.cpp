@@ -27,7 +27,7 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		data.rootSignature.Add(&constant, 1);
 		data.rootSignature.Add(&readOnly, 1);
 		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device);
+		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -100,7 +100,14 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		CopyCommandList commandList;
 		commandList.Init(renderDevice->m_Device);
 		UINT uploadPitch = (width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
-		commandList.UploadTexture(pixels, width, height, uploadPitch, 1, DXGI_FORMAT_R8G8B8A8_UNORM, data.font);
+
+		UploadTextureDesc desc;
+		desc.width = width;
+		desc.height = height;
+		desc.rowPitch = uploadPitch;
+		desc.pitch = 1;
+		commandList.UploadTexture(pixels, desc, DXGI_FORMAT_R8G8B8A8_UNORM, data.font);
+
 		renderDevice->Submit(&commandList, 1);
 		renderDevice->Execute();
 		renderDevice->WaitForIdle();
@@ -157,7 +164,7 @@ void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 	commandList.SetVertexBuffers(&data.vertexBuffer, 1);
 	commandList.SetIndexBuffer(data.indexBuffer);
 	commandList.SetConstant(0, data.cbv);
-	commandList.SetReadOnlyResource(0, &data.font, 1);
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.font).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D), 1);
 
 	// Upload vertex/index data into a single contiguous GPU buffer
 	void* vtx_resource = data.vertexBuffer.Map();

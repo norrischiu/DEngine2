@@ -25,7 +25,7 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 		data.rootSignature.Add(&constant, 1);
 		data.rootSignature.Add(&readOnly, 1);
 		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device);
+		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -107,7 +107,7 @@ void SkyboxPass::Execute(DrawCommandList& commandList, const FrameData& frameDat
 	commandList.SetPipeline(data.pso);
 
 	commandList.SetConstant(0, data.cbv);
-	commandList.SetReadOnlyResource(0, &data.cubemap, 1, D3D12_SRV_DIMENSION_TEXTURECUBE);
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.cubemap).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
 	commandList.DrawInstanced(3, 1, 0, 0);
 
 	data.backBufferIndex = 1 - data.backBufferIndex;
