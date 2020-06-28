@@ -18,6 +18,12 @@
     <ClInclude Include="stb_image.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image_resize.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="picojson.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DExporter.cpp">
