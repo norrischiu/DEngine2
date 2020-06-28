@@ -18,7 +18,10 @@ namespace detail
 // only implemented for those in use
 uint32_t GetPitch(DXGI_FORMAT format)
 {
-	if (format >= DXGI_FORMAT_R16G16B16A16_TYPELESS && format<= DXGI_FORMAT_R16G16B16A16_SINT) {
+	if (format >= DXGI_FORMAT_R32G32B32A32_TYPELESS && format <= DXGI_FORMAT_R32G32B32_SINT) {
+		return 4;
+	}
+	else if (format >= DXGI_FORMAT_R16G16B16A16_TYPELESS && format<= DXGI_FORMAT_R16G16B16A16_SINT) {
 		return 2;
 	}
 	else return 1;
