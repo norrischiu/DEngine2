@@ -6,7 +6,8 @@ TextureCube environmentMap : register(t0);
 SamplerState SurfaceSampler : register(s0);
 cbuffer PrefilterCBuffer : register(b1)
 {
-    float roughness;
+	float2 resolution; 
+	float roughness;
 };
 
 struct VS_OUTPUT
@@ -34,7 +35,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 		float NdotL = saturate(dot(normal, L));
         if(NdotL > 0.0)
         {
-            color += environmentMap.Sample(SurfaceSampler, L).rgb * NdotL;
+			color += clamp(environmentMap.Sample(SurfaceSampler, L).rgb, 0.0f, 16.0f) * NdotL;
 			weight += NdotL;
         }
 	}

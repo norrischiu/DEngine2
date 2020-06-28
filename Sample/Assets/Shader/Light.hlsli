@@ -68,6 +68,7 @@ float3 IntegrateEdge(float3 v1, float3 v2)
 
 float3 EvaluateLTC(
 	Texture2D LTCNormMap,
+	Texture2D AreaLightTexture,
 	sampler SurfaceSampler,
 	float3x3 transform,
 	float4 vertices[4],
@@ -84,7 +85,7 @@ float3 EvaluateLTC(
 	float3x3 basis = transpose(float3x3(T1, T2, N));
 	transform = mul(basis, transform);
 
-	// polygon
+	// tranform light polygon to cosine space
 	float3 L[4];
 	L[0] = mul(vertices[0].xyz - posWS, transform);
 	L[1] = mul(vertices[1].xyz - posWS, transform);
@@ -96,6 +97,11 @@ float3 EvaluateLTC(
 	bool behind = (dot(dir, lightNormal) < 0.0);
 	if (behind) return float3(0.0f, 0.0f, 0.0f);
 
+	// texturing
+	float3 V1 = L[1] - L[0];
+	float3 V2 = L[3] - L[0];
+	float3 L0 = L[0];
+
 	// project onto sphere
 	L[0] = normalize(L[0]);
 	L[1] = normalize(L[1]);
@@ -103,14 +109,14 @@ float3 EvaluateLTC(
 	L[3] = normalize(L[3]);
 
 	// integration by edges
-	float3 vsum = 0.0;
-	vsum += IntegrateEdge(L[0], L[1]);
-	vsum += IntegrateEdge(L[1], L[2]);
-	vsum += IntegrateEdge(L[2], L[3]);
-	vsum += IntegrateEdge(L[3], L[0]);
+	float3 vectorIrradiance = 0.0;
+	vectorIrradiance += IntegrateEdge(L[0], L[1]);
+	vectorIrradiance += IntegrateEdge(L[1], L[2]);
+	vectorIrradiance += IntegrateEdge(L[2], L[3]);
+	vectorIrradiance += IntegrateEdge(L[3], L[0]);
 
-	float len = length(vsum);
-	float z = vsum.z / len;
+	float len = length(vectorIrradiance);
+	float z = vectorIrradiance.z / len;
 	//if (behind) z = -z;
 
 	float2 uv = float2(z*0.5 + 0.5, len);
@@ -118,13 +124,31 @@ float3 EvaluateLTC(
 	float scale = LTCNormMap.Sample(SurfaceSampler, uv).w;
 	float sum = len * scale;
 
-	return float3(sum, sum, sum);
+	float3 planeOrtho = (cross(V1, V2));
+	float planeAreaSquared = dot(planeOrtho, planeOrtho);
+	float planeDistxPlaneArea = dot(planeOrtho, L0);
+	float3 P = vectorIrradiance - L0;
+
+	// find tex coords of P
+	float dot_V1_V2 = dot(V1, V2);
+	float inv_dot_V1_V1 = 1.0 / dot(V1, V1);
+	float3 V2_ = V2 - V1 * dot_V1_V2 * inv_dot_V1_V1;
+	float2 Puv;
+	Puv.y = dot(V2_, P) / dot(V2_, V2_);
+	Puv.x = dot(V1, P)*inv_dot_V1_V1 - dot_V1_V2 * inv_dot_V1_V1*Puv.y;
+
+	// LOD
+	float d = abs(planeDistxPlaneArea) / pow(planeAreaSquared, 0.75);
+	float3 textureColor = AreaLightTexture.SampleLevel(SurfaceSampler, Puv, log(2048.0*d) / log(3.0)).rgb;
+
+	return float3(sum, sum, sum) * textureColor;
 }
 
 float3 EvaluateQuadLightIrradiance(
 	QuadLight quadLight,
 	Texture2D LTCInverseMatrixMap,
 	Texture2D LTCNormMap,
+	Texture2D AreaLightTexture,
 	sampler SurfaceSampler,
 	float3 posWS,
 	float3 N,
@@ -133,7 +157,7 @@ float3 EvaluateQuadLightIrradiance(
 )
 {
 	// getting the LTC inverse matrix and norm
-	float2 uv = float2(roughness, sqrt(1.0 - dot(N, V)));
+	float2 uv = float2(roughness, sqrt(1.0 - saturate(dot(N, V))));
 	uv = uv * LUT_SCALE + LUT_BIAS;
 
 	float4 inv = LTCInverseMatrixMap.Sample(SurfaceSampler, uv);
@@ -143,7 +167,7 @@ float3 EvaluateQuadLightIrradiance(
 		inv.z, 0.0f, inv.w
 	};
 
-	float3 specular = EvaluateLTC(LTCNormMap, SurfaceSampler, inverseMatrix, quadLight.vertices, posWS, N, V);
+	float3 specular = EvaluateLTC(LTCNormMap, AreaLightTexture, SurfaceSampler, inverseMatrix, quadLight.vertices, posWS, N, V);
 	float4 norm = LTCNormMap.Sample(SurfaceSampler, uv);
 	specular *= quadLight.color * norm.x + (1.0f - quadLight.color) * norm.y;
 	
@@ -153,7 +177,7 @@ float3 EvaluateQuadLightIrradiance(
 		0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 1.0f
 	};
-	float3 diffuse = EvaluateLTC(LTCNormMap, SurfaceSampler, identity, quadLight.vertices, posWS, N, V);
+	float3 diffuse = EvaluateLTC(LTCNormMap, AreaLightTexture, SurfaceSampler, identity, quadLight.vertices, posWS, N, V);
 
 	return quadLight.intensity * (specular + quadLight.color * diffuse);
 }

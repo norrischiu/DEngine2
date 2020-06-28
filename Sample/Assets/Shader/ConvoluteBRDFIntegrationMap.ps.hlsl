@@ -13,7 +13,7 @@ struct VS_OUTPUT
 	float4 vPos : SV_POSITION;
 };
 
-float4 main(VS_OUTPUT IN) : SV_TARGET
+float2 main(VS_OUTPUT IN) : SV_TARGET
 {
 	float NdotV = IN.vPos.x / textureSize.x;
 	float roughness = IN.vPos.y / textureSize.y;
@@ -45,5 +45,5 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
         }
 	}
 
-	return float4(scale / numSample, bias / numSample, 0.0f, 1.0f);
+	return float2(scale / numSample, bias / numSample);
 }

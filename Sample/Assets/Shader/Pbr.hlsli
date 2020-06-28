@@ -62,7 +62,7 @@ float3 Fresnel_Schlick(float cosTheta, float3 F0)
 }
 float3 Fresnel_SchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (max(1.0 - roughness, F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }   
 
 float RadicalInverse_VdC(uint bits) 
@@ -136,6 +136,24 @@ float3 ImportanceSample_InverseCDF_GGX(float2 U, float3 N, float roughness)
     float3 sampleVec = tangent * H.x + N * H.y + bitangent * H.z;
     return normalize(sampleVec);
 }
+float3 ImportanceSample_DiffuseLobe(float2 u, float3 N)
+{
+	float phi = 2.0 * PI * u.y;
+	float cos_theta = sqrt(1.0 - u.x);
+	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+	float3 H;
+	H.x = sin_theta * cos(phi);
+	H.y = cos_theta;
+	H.z = sin_theta * sin(phi);
+
+	float3 up = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+	float3 tangent = normalize(cross(N, up));
+	float3 bitangent = cross(tangent, N);
+
+	float3 sampleVec = tangent * H.x + N * H.y + bitangent * H.z;
+	return normalize(sampleVec);
+}
 
 #include "Light.hlsli"
 
@@ -145,6 +163,7 @@ float3 PbrShading(
 	Texture2D BRDFIntegrationMap,
 	Texture2D LTCInverseMatrixMap,
 	Texture2D LTCNormMap,
+	Texture2D AreaLightTexture,
 	sampler SurfaceSampler,
 	uint numPointLight,
 	uint numQuadLight,
@@ -169,7 +188,7 @@ float3 PbrShading(
 	float3 F = Fresnel_SchlickRoughness(saturate(dot(N, V)), F0, roughness);
 
 	float3 kS = F;
-	float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
+	float3 kD = 1.0f - kS;
 	kD *= 1.0 - metallic;
 	float3 refractedDiffuse = kD * albedo / PI; // Kd * f lambert
 
@@ -181,7 +200,7 @@ float3 PbrShading(
 	}
 	for (i = 0; i < numQuadLight; ++i) 
 	{
-		Lo += EvaluateQuadLightIrradiance(quadLights[i], LTCInverseMatrixMap, LTCNormMap, SurfaceSampler, posWS, N, V, roughness);
+		Lo += EvaluateQuadLightIrradiance(quadLights[i], LTCInverseMatrixMap, LTCNormMap, AreaLightTexture, SurfaceSampler, posWS, N, V, roughness);
 	}
 
 	// indirect specular
