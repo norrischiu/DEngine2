@@ -5,6 +5,7 @@
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/RenderPass/PrecomputeDiffuseIBLPass.h>
 #include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
+#include <DERendering/RenderPass/PrefilterAreaLightTexturePass.h>
 #include <DERendering/RenderPass/SkyboxPass.h>
 #include <DERendering/RenderPass/UIPass.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
@@ -34,6 +35,7 @@ private:
 	DE::ForwardPass m_forwardPass;
 	DE::PrecomputeDiffuseIBLPass m_precomputeDiffuseIBLPass;
 	DE::PrecomputeSpecularIBLPass m_precomputeSpecularIBLPass;
+	DE::PrefilterAreaLightTexturePass m_prefilterAreaLightTexturePass;
 	DE::SkyboxPass m_SkyboxPass;
 	DE::UIPass m_UIPass;
 
