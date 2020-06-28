@@ -14,11 +14,7 @@ echo Copying external libraries...
 xcopy /y ..\DTools\External\Assimp\bin\x64\assimp-vc141-mt.dll  ..\DTools\Bin\
 
 echo Building assets...
-..\DTools\Bin\DExporterRelease.exe model Assets\Models\Test\EnvironmentTest.gltf Bin\Assets\ SampleScene
-..\DTools\Bin\DExporterRelease.exe texture Assets\Textures\Gym\gym_entrance_1k.hdr Bin\Assets\ SampleScene
-..\DTools\Bin\DExporterRelease.exe texture Assets\Textures\LTC\LTCInverseMatrixMap.png Bin\Assets\ SampleScene 2
-..\DTools\Bin\DExporterRelease.exe texture Assets\Textures\LTC\LTCNormMap.png Bin\Assets\ SampleScene 2
-
+..\DTools\Bin\DExporterRelease.exe -mode scene -input Assets\Scenes\sampleScene.json
 echo Done
 
 pause
