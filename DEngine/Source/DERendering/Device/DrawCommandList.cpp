@@ -76,10 +76,22 @@ void DrawCommandList::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology)
 void DrawCommandList::SetSignature(RootSignature* signature)
 {
 	m_pCurrSignature = signature;
-	m_CommandList.ptr->SetGraphicsRootSignature(signature->ptr);
+	if (signature->type == RootSignature::Type::Graphics)
+	{
+		m_CommandList.ptr->SetGraphicsRootSignature(signature->ptr);
+	}
+	else // Compute
+	{
+		m_CommandList.ptr->SetComputeRootSignature(signature->ptr);
+	}
 }
 
 void DrawCommandList::SetPipeline(const GraphicsPipelineState& pipeline)
+{
+	m_CommandList.ptr->SetPipelineState(pipeline.ptr);
+}
+
+void DrawCommandList::SetPipeline(const ComputePipelineState & pipeline)
 {
 	m_CommandList.ptr->SetPipelineState(pipeline.ptr);
 }
@@ -90,10 +102,17 @@ void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv,
 	assert(index < m_pCurrSignature->constantNum);
 
 	const uint32_t rootParamterIndex = m_pCurrSignature->constantDefs[index].rootParameterIndex;
-	m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
+	if (m_pCurrSignature->type == RootSignature::Type::Graphics)
+	{
+		m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
+
+	} else // Compute
+	{
+		m_CommandList.ptr->SetComputeRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
+	}
 }
 
-void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num, D3D12_SRV_DIMENSION viewDimension /*= D3D12_SRV_DIMENSION_TEXTURE2D*/)
+void DrawCommandList::SetReadOnlyResource(uint32_t index, ReadOnlyResource* resources, uint32_t num)
 {
 	assert(m_pCurrSignature);
 	assert(index < m_pCurrSignature->readOnlyResourceNum);
@@ -103,9 +122,38 @@ void DrawCommandList::SetReadOnlyResource(uint32_t index, Texture* textures, uin
 	for (uint32_t i = 0; i < num; ++i)
 	{
 		ShaderResourceView srv;
-		srv.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, textures[i], viewDimension);
+		srv.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, resources[i]);
 	}
-	m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
+	if (m_pCurrSignature->type == RootSignature::Type::Graphics)
+	{
+		m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
+	}
+	else // Compute
+	{
+		m_CommandList.ptr->SetComputeRootDescriptorTable(rootParamterIndex, descriptorTable);
+	}
+}
+
+void DrawCommandList::SetReadWriteResource(uint32_t index, ReadWriteResource* resources, uint32_t num)
+{
+	assert(m_pCurrSignature);
+	assert(index < m_pCurrSignature->readWriteResourceNum);
+
+	const uint32_t rootParamterIndex = m_pCurrSignature->readWriteResourceDefs[index].rootParameterIndex;
+	D3D12_GPU_DESCRIPTOR_HANDLE descriptorTable = m_ShaderResourceSubHeap.gpuCurrent;
+	for (uint32_t i = 0; i < num; ++i)
+	{
+		UnorderedAccessView uav;
+		uav.Init(m_pDevice->m_Device, m_ShaderResourceSubHeap, resources[i]);
+	}
+	if (m_pCurrSignature->type == RootSignature::Type::Graphics)
+	{
+		m_CommandList.ptr->SetGraphicsRootDescriptorTable(rootParamterIndex, descriptorTable);
+	}
+	else // Compute
+	{
+		m_CommandList.ptr->SetComputeRootDescriptorTable(rootParamterIndex, descriptorTable);
+	}
 }
 
 void DrawCommandList::SetRenderTargetDepth(RenderTargetView::Desc* renderTarget, uint32_t num, Texture* depth, uint32_t flag /*= 0*/, float* clearColor /*= nullptr*/, float clearDepth /*= 0.0f*/)
@@ -157,11 +205,29 @@ void DrawCommandList::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount
 	m_CommandList.ptr->DrawInstanced(vertexCount, instanceCount, vertexOffset, instanceOffset);
 }
 
+void DrawCommandList::Dispatch(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
+{
+	for (const auto& barrier : m_Barriers) {
+		m_CommandList.ptr->ResourceBarrier(1, &barrier);
+	}
+	m_Barriers.clear();
+
+	m_CommandList.ptr->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+}
+
+void DrawCommandList::UnorderedAccessBarrier(const Texture & texture)
+{
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	barrier.UAV.pResource = texture.ptr.Get();
+
+	m_CommandList.ptr->ResourceBarrier(1, &barrier);
+}
+
 void DrawCommandList::ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barrier.Transition.pResource = texture.ptr.Get();
 	barrier.Transition.StateBefore = before;
 	barrier.Transition.StateAfter = after;

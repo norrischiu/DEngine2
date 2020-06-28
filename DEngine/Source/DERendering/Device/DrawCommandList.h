@@ -32,6 +32,7 @@ public:
 	void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology);
 	void SetSignature(RootSignature* signature);
 	void SetPipeline(const GraphicsPipelineState& pipeline);
+	void SetPipeline(const ComputePipelineState& pipeline);
 	void SetViewportAndScissorRect(float x, float y, float width, float height, float zMin, float zMax);
 	void SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom);
 
@@ -39,13 +40,17 @@ public:
 	void SetIndexBuffer(const IndexBuffer& buffer);
 
 	void SetConstant(uint32_t index, const ConstantBufferView& cbv, size_t offset = 0);
-	void SetReadOnlyResource(uint32_t index, Texture* textures, uint32_t num, D3D12_SRV_DIMENSION viewDimension = D3D12_SRV_DIMENSION_TEXTURE2D);
+	void SetReadOnlyResource(uint32_t index, ReadOnlyResource* resources, uint32_t num);
+	void SetReadWriteResource(uint32_t index, ReadWriteResource* resources, uint32_t num);
 	void SetRenderTargetDepth(RenderTargetView::Desc* renderTarget, uint32_t num, Texture* depth, uint32_t flag = 0, float* clearColor = nullptr, float clearDepth = 0.0f);
 
+	void UnorderedAccessBarrier(const Texture& texture);
 	void ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 	void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset);
 	void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexOffset, uint32_t instanceOffset);
+
+	void Dispatch(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ);
 
 	inline const CommandList& GetCommandList() const
 	{
