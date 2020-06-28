@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <d3d12.h>
 #include <tchar.h>
+#include <DXProgrammableCapture.h>
 // Cpp
 #include <sstream>
 #include <iostream>
@@ -152,7 +153,13 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 			// app update
 			sample.Update(*renderDevice, elaspedTime);
-			renderDevice->ExecuteAndPresent();
+			static ComPtr<IDXGraphicsAnalysis> ga;
+			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK)) {
+				ga->BeginCapture();
+				renderDevice->ExecuteAndPresent();
+				ga->EndCapture();
+			}
+			else renderDevice->ExecuteAndPresent();
 
 			elaspedTime = 0.0f;
 			start = end;
