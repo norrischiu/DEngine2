@@ -6,12 +6,17 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize.h"
+
+#include "picojson.h"
 
 #include <sstream>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <filesystem>
+#include <unordered_map>
 
 static char s_inputDirectory[256];
 
@@ -53,23 +58,27 @@ enum TextureType
 
 struct Texture
 {
-	uint8_t* data;
-	uint32_t width;
-	uint32_t height;
-	uint32_t numComponent;
-	std::size_t size;
-	std::string name;
+	static Texture Null()
+	{
+		return Texture{};
+	};
+	std::vector<uint8_t> data = {};
+	uint32_t width = 0;
+	uint32_t height = 0;
+	uint32_t numComponent = 0;
+	uint32_t numMip = 0;
+	std::string name = {};
 };
 
 struct Material
 {
-	std::string name;
+	std::string name = {};
 	// param
-	float3 albedo;
-	float metallic;
-	float roughness;
+	float3 albedo = {};
+	float metallic = 0.0f;
+	float roughness = 0.0f;
 	// texture
-	Texture textures[TextureType::Count];
+	std::vector<Texture> textures = {};
 	uint32_t numTextures = 0;
 };
 
@@ -86,7 +95,139 @@ struct Mesh
 	std::string materialName;
 };
 
-void ProcessMesh(const aiMesh* mesh, const aiScene *scene, std::vector<Mesh>& outMeshes)
+bool ProcessTexture(std::vector<Texture>& textures, const char* path, const char*& error, bool generateMip = false, uint32_t pitch = 1)
+{
+	Texture tex;
+	int x, y, n;
+	void* raw = nullptr;
+	bool isHdr = stbi_is_hdr(path);
+	bool is16Bit = stbi_is_16_bit(path);
+	if (is16Bit)
+	{
+		raw = reinterpret_cast<uint8_t*>(stbi_load_16(path, &x, &y, &n, 4));
+	}
+	else
+	{
+		if (isHdr)
+		{
+			raw = stbi_loadf(path, &x, &y, &n, 4);
+			pitch = 4;
+		}
+		else
+		{
+			raw = stbi_load(path, &x, &y, &n, 4);
+		}
+	}
+	if (!raw)
+	{
+		error = stbi_failure_reason();
+		return false;
+	}
+	if (generateMip)
+	{
+		if (x != y)
+		{
+			error = "Mipmap generation only support on square texture for now\n";
+			return false;
+		}
+
+		std::size_t baseMipSize = x * y * pitch * 4;
+		tex.data.resize(baseMipSize * 4 / 3);
+		memcpy(tex.data.data(), raw, baseMipSize);
+
+		uint8_t* src = tex.data.data();
+		uint8_t* dst = tex.data.data() + baseMipSize;
+
+		uint32_t numMip = static_cast<uint32_t>(log2f(static_cast<float>(x))) + 1;
+		for (uint32_t i = 1; i < numMip; ++i)
+		{
+			uint32_t lastWidth = x >> (i - 1);
+			uint32_t lastHeight = y >> (i - 1);
+			std::size_t lastSize = lastWidth * lastHeight * pitch * 4;
+			uint32_t width = x >> i;
+			uint32_t height = y >> i;
+			std::size_t size = width * height * pitch * 4;
+
+			stbir_resize_uint8(src, lastWidth, lastHeight, 0, dst, width, height, 0, 4);
+
+			src += lastSize;
+			dst += size;
+		}
+		tex.numMip = numMip;
+	}
+	else
+	{
+		tex.numMip = 1;
+		tex.data.resize(x * y * pitch * 4);
+		memcpy(tex.data.data(), raw, tex.data.size());
+	}
+
+	tex.width = x;
+	tex.height = y;
+	tex.numComponent = 4;
+
+	char filename[256];
+	_splitpath_s(path, NULL, 0, NULL, 0, filename, 256, NULL, 0);
+	tex.name = filename;
+
+	textures.push_back(tex);
+	return true;
+}
+
+void ProcessMaterial(const aiMaterial* material, std::vector<Material>& materials)
+{
+	Material outMat;
+
+	aiString name;
+	material->Get(AI_MATKEY_NAME, name);
+	outMat.name = name.C_Str();
+
+	// PARAMETER
+	aiColor3D albedo;
+	material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, albedo);
+	memcpy(&outMat.albedo.x, &albedo, sizeof(albedo));
+	material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, outMat.roughness);
+	material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, outMat.metallic);
+
+	// TEXTURE
+	char tmp[256];
+	const char* error = {};
+	struct { aiTextureType type; uint32_t index; } aiTextures[] =
+	{
+		{ aiTextureType_DIFFUSE, 1 }, // albedo, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE aiTextureType_DIFFUSE, 1
+		{ aiTextureType_NORMALS, 0 }, // normal
+		{ aiTextureType_UNKNOWN, 0 }, // metallic, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
+		{ aiTextureType_UNKNOWN, 0 }, // roughness, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
+		{ aiTextureType_LIGHTMAP, 0 }, // ao
+	};
+	for (const auto& pair : aiTextures)
+	{
+		aiString path;
+
+		material->GetTexture(pair.type, pair.index, &path);
+		if (path.length != 0)
+		{
+			sprintf_s(tmp, "%s%s", s_inputDirectory, path.C_Str());
+			ProcessTexture(outMat.textures, tmp, error, true);
+			outMat.numTextures++;
+		}
+		else
+		{
+			outMat.textures.push_back(Texture::Null());
+		}
+	}
+
+	// find duplicated name
+	size_t count = std::count_if(materials.begin(), materials.end(), [&](const auto& m) {return m.name == outMat.name; });
+	if (count > 0)
+	{
+		outMat.name += std::to_string(count);
+	}
+
+	materials.push_back(std::move(outMat));
+}
+
+void ProcessMesh(const aiMesh* mesh, const aiScene *scene, std::vector<Mesh>& outMeshes, std::vector<Material>& outMaterials)
 {
 	Mesh outMesh;
 	outMesh.name = mesh->mName.C_Str();
@@ -142,111 +283,52 @@ void ProcessMesh(const aiMesh* mesh, const aiScene *scene, std::vector<Mesh>& ou
 	}
 
 	{
-		aiString name;
-		scene->mMaterials[mesh->mMaterialIndex]->Get(AI_MATKEY_NAME, name);
-		outMesh.materialName = name.C_Str();
+		ProcessMaterial(scene->mMaterials[mesh->mMaterialIndex], outMaterials);
+		outMesh.materialName = outMaterials.back().name;
 	}
 
 	outMeshes.push_back(outMesh);
 }
 
-void ProcessNode(aiNode *node, const aiScene *scene, std::vector<Mesh>& meshes)
+void ProcessNode(aiNode *node, const aiScene *scene, std::vector<Mesh>& meshes, std::vector<Material>& materials)
 {
 	// process all the node's meshes (if any)
 	for (uint32_t i = 0; i < node->mNumMeshes; ++i)
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		ProcessMesh(mesh, scene, meshes);
+		ProcessMesh(mesh, scene, meshes, materials);
 	}
 	// then do the same for each of its children
 	for (uint32_t i = 0; i < node->mNumChildren; ++i)
 	{
-		ProcessNode(node->mChildren[i], scene, meshes);
+		ProcessNode(node->mChildren[i], scene, meshes, materials);
 	}
 }
-void ProcessMaterial(const aiScene *scene, std::vector<Material>& materials)
+
+void Export(const std::vector<Texture>& textures, const char* path)
 {
-	materials.reserve(scene->mNumMaterials);
-	for (uint32_t i = 0; i < scene->mNumMaterials; ++i)
+	std::fstream fout;
+	char fileOut[256];
+	sprintf_s(fileOut, "%s\\Textures\\", path);
+	std::filesystem::create_directories(fileOut);
+
+	for (auto& tex : textures)
 	{
-		const aiMaterial* material = scene->mMaterials[i];
-		Material outMat;
-
-		aiString name;
-		material->Get(AI_MATKEY_NAME, name);
-		outMat.name = name.C_Str();
-
-		// PARAMETER
-		aiColor3D albedo;
-		material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, albedo);
-		memcpy(&outMat.albedo.x, &albedo, sizeof(albedo));
-		material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, outMat.roughness);
-		material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLIC_FACTOR, outMat.metallic);
-
-		// TEXTURE
-		char tmp[256];
-		struct { aiTextureType type; uint32_t index; } aiTextures[] =
+		if (!tex.name.empty())
 		{
-			{ aiTextureType_DIFFUSE, 1 }, // albedo, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE aiTextureType_DIFFUSE, 1
-			{ aiTextureType_NORMALS, 0 }, // normal
-			{ aiTextureType_UNKNOWN, 0 }, // metallic, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
-			{ aiTextureType_UNKNOWN, 0 }, // roughness, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_METALLICROUGHNESS_TEXTURE aiTextureType_UNKNOWN, 0
-			{ aiTextureType_LIGHTMAP, 0 }, // ao
-		};
-		for (uint32_t i = 0; i < TextureType::Count; ++i)
-		{
-			auto& tex = outMat.textures[i];
-			aiString path;
+			sprintf_s(fileOut, "%s\\Textures\\%s.tex", path, tex.name.c_str());
 
-			material->GetTexture(aiTextures[i].type, aiTextures[i].index, &path);
-			if (path.length != 0)
-			{
-				int x, y, n;
-				sprintf_s(tmp, "%s%s", s_inputDirectory, path.C_Str());
-				tex.data = stbi_load(tmp, &x, &y, &n, 4);
-				assert(tex.data);
-				tex.width = x;
-				tex.height = y;
-				tex.numComponent = 4;
-				tex.size = x * y * 4;
-
-				char filename[256];
-				_splitpath_s(tmp, NULL, 0, NULL, 0, filename, 256, NULL, 0);
-				tex.name = filename;
-
-				outMat.numTextures++;
-			}
+			fout.open(fileOut, std::fstream::out | std::fstream::binary);
+			fout.write(reinterpret_cast<const char*>(&tex.width), sizeof(tex.width));
+			fout.write(reinterpret_cast<const char*>(&tex.height), sizeof(tex.height));
+			fout.write(reinterpret_cast<const char*>(&tex.numComponent), sizeof(tex.numComponent));
+			fout.write(reinterpret_cast<const char*>(&tex.numMip), sizeof(tex.numMip));
+			std::size_t size = tex.data.size();
+			fout.write(reinterpret_cast<const char*>(&size), sizeof(size));
+			fout.write(reinterpret_cast<const char*>(tex.data.data()), tex.data.size());
+			fout.close();
 		}
-
-		materials.push_back(std::move(outMat));
 	}
-}
-
-bool ProcessTexture(std::vector<Texture>& textures, const char* path, const char*& error, uint32_t pitch = 1)
-{
-	Texture tex;
-	int x, y, n;
-	if (pitch == 1) {
-		tex.data = stbi_load(path, &x, &y, &n, 4);
-	}
-	else if (pitch == 2) {
-		tex.data = reinterpret_cast<uint8_t*>(stbi_load_16(path, &x, &y, &n, 4));
-	}
-	if (!tex.data) {
-		error = stbi_failure_reason();
-		return false;
-	}
-	tex.width = x;
-	tex.height = y;
-	tex.numComponent = 4;
-	tex.size = x * y * pitch * 4;
-
-	char filename[256];
-	_splitpath_s(path, NULL, 0, NULL, 0, filename, 256, NULL, 0);
-	tex.name = filename;
-
-	textures.push_back(tex);
-	return true;
 }
 
 void Export(const std::vector<Material>& materials, const char* path)
@@ -269,32 +351,21 @@ void Export(const std::vector<Material>& materials, const char* path)
 		fout << material.metallic << "\n";
 		fout << material.roughness << "\n";
 		fout << material.numTextures << "\n";
-		for (uint32_t j = 0; j < TextureType::Count; ++j)
+		for (const auto& tex : material.textures)
 		{
-			if (!material.textures[j].name.empty())
+			if (!tex.name.empty())
 			{
-				sprintf_s(fileOut, "..\\Textures\\%s.tex", material.textures[j].name.c_str());
+				sprintf_s(fileOut, "..\\Textures\\%s.tex", tex.name.c_str());
 				fout << fileOut << "\n";
+			}
+			else
+			{
+				fout << "null" << "\n";
 			}
 		}
 		fout.close();
 
-		for (uint32_t j = 0; j < TextureType::Count; ++j)
-		{
-			const auto& tex = material.textures[j];
-			if (!tex.name.empty())
-			{
-				sprintf_s(fileOut, "%s\\Textures\\%s.tex", path, tex.name.c_str());
-
-				fout.open(fileOut, std::fstream::out | std::fstream::binary);
-				fout.write(reinterpret_cast<const char*>(&tex.width), sizeof(tex.width));
-				fout.write(reinterpret_cast<const char*>(&tex.height), sizeof(tex.height));
-				fout.write(reinterpret_cast<const char*>(&tex.numComponent), sizeof(tex.numComponent));
-				fout.write(reinterpret_cast<const char*>(&tex.size), sizeof(tex.size));
-				fout.write(reinterpret_cast<char*>(tex.data), tex.size);
-				fout.close();
-			}
-		}
+		Export(material.textures, path);
 	}
 
 }
@@ -412,78 +483,143 @@ void Export(const std::vector<Mesh>& meshes, const std::vector<Material>& materi
 	Export(materials, path);
 }
 
-void Export(const std::vector<Texture>& textures, const char* path)
-{
-	std::fstream fout;
-	char fileOut[256];
-	sprintf_s(fileOut, "%s\\Textures\\", path);
-	std::filesystem::create_directories(fileOut);
-
-	for (auto& tex : textures) 
-	{
-		if (!tex.name.empty())
-		{
-			sprintf_s(fileOut, "%s\\Textures\\%s.tex", path, tex.name.c_str());
-
-			fout.open(fileOut, std::fstream::out | std::fstream::binary);
-			fout.write(reinterpret_cast<const char*>(&tex.width), sizeof(tex.width));
-			fout.write(reinterpret_cast<const char*>(&tex.height), sizeof(tex.height));
-			fout.write(reinterpret_cast<const char*>(&tex.numComponent), sizeof(tex.numComponent));
-			fout.write(reinterpret_cast<const char*>(&tex.size), sizeof(tex.size));
-			fout.write(reinterpret_cast<char*>(tex.data), tex.size);
-			fout.close();
-		}
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	if (argc < 5) {
-		return 0;
+	std::unordered_map<std::string, std::string> args;
+	for (int32_t i = 1; i < argc; ++i)
+	{
+		std::string arg = argv[i];
+		if (arg[0] != '-')
+		{
+			printf("Command ill-formed\n");
+			return 0;
+		}
+		args[argv[i]] = argv[i + 1];
+		i++;
 	}
 
-	const char* option = argv[1];
-	const char* inputPath = argv[2];
-	_splitpath_s(inputPath, NULL, 0, s_inputDirectory, 256, NULL, 0, NULL, 0);
-	char outputPath[256];
-	sprintf_s(outputPath, "%s\\%s", argv[3], argv[4]); // outdir + scene name
-	const char* sceneName = argv[4];
+	const std::string& mode = args["-mode"];
+	const std::string& inputPath = args["-input"];
+	_splitpath_s(inputPath.c_str(), NULL, 0, s_inputDirectory, 256, NULL, 0, NULL, 0);
+	const std::string& outputPath = args["-outputDir"] + "\\" + args["-scene"];
+	const std::string& sceneName = args["-scene"];
 
-	if (strcmp(option, "model") == 0)
+	if (mode == "scene")
+	{
+		std::fstream fin;
+		fin.open(inputPath, std::fstream::in);
+
+		if (fin.fail())
+		{
+			std::cerr << "Cannot open file: " << inputPath << '\n';
+			return 0;
+		}
+
+		picojson::value json;
+		std::string err;
+		picojson::parse(json, std::istreambuf_iterator<char>(fin), std::istreambuf_iterator<char>(), &err);
+		if (!err.empty() || !json.is<picojson::object>())
+		{
+			std::cerr << err << std::endl;
+			return 0;
+		}
+
+		std::vector<Mesh> meshes;
+		std::vector<Material> materials;
+		std::vector<Texture> textures;
+
+		auto obj = json.get<picojson::object>();
+		const std::string& outputPath = obj["outputDir"].get<std::string>() + "\\" + obj["name"].get<std::string>();
+		const std::string& sceneName = obj["name"].get<std::string>();
+
+		for (const auto& model : obj["models"].get<std::vector<picojson::value>>())
+		{
+			auto obj = model.get<picojson::object>();
+			auto path = obj["path"].get<std::string>();
+			_splitpath_s(path.c_str(), NULL, 0, s_inputDirectory, 256, NULL, 0, NULL, 0);
+
+			Assimp::Importer importer;
+			const aiScene *scene = nullptr;
+			try
+			{
+				scene = importer.ReadFile(path, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded | aiProcess_PreTransformVertices);
+			}
+			catch (DeadlyImportError e)
+			{
+				std::cerr << "Assimp import error: " << e.what() << '\n';
+				return 0;
+			}
+
+			ProcessNode(scene->mRootNode, scene, meshes, materials);
+		}
+
+		for (const auto& texture : obj["textures"].get<std::vector<picojson::value>>())
+		{
+			auto obj = texture.get<picojson::object>();
+
+			uint32_t pitch = 1;
+			if (!obj["pitch"].is<picojson::null>()) {
+				pitch = static_cast<uint32_t>(obj["pitch"].get<double>());
+			}
+			bool genMip = false;
+			if (!obj["genMip"].is<picojson::null>()) {
+				genMip = obj["genMip"].get<bool>();
+			}
+
+			const char* error = {};
+			if (!ProcessTexture(textures, obj["path"].get<std::string>().c_str(), error, genMip, pitch)) {
+				std::cerr << "Parse textures failed because: " << error << '\n';
+				return 0;
+			}
+		}
+
+		Export(meshes, materials, outputPath.c_str(), sceneName.c_str());
+		Export(textures, outputPath.c_str());
+	}
+	else if (mode == "model")
 	{
 		Assimp::Importer importer;
 		const aiScene *scene = nullptr;
-		try 
+		try
 		{
 			scene = importer.ReadFile(inputPath, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded | aiProcess_PreTransformVertices);
 		}
 		catch (DeadlyImportError e)
 		{
-			printf("Assimp import error: %s\n", e.what());
+			std::cerr << "Assimp import error: " << e.what() << '\n';
+			return 0;
 		}
 
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
 
-		ProcessNode(scene->mRootNode, scene, meshes);
-		ProcessMaterial(scene, materials);
+		ProcessNode(scene->mRootNode, scene, meshes, materials);
 
-		Export(meshes, materials, outputPath, sceneName);
+		Export(meshes, materials, outputPath.c_str(), sceneName.c_str());
 	}
-	if (strcmp(option, "texture") == 0)
+	else if (mode == "texture")
 	{
 		std::vector<Texture> textures;
 		uint32_t pitch = 1;
-		if (argc > 5) {
-			pitch = atoi(argv[5]);
+		if (args.find("-pitch") != args.end()) {
+			pitch = std::stoi(args["-pitch"]);
+		}
+		bool genMip = false;
+		if (args.find("-genMip") != args.end()) {
+			genMip = std::stoi(args["-genMip"]);
 		}
 
 		const char* error = {};
-		if (!ProcessTexture(textures, inputPath, error, pitch)) {
+		if (!ProcessTexture(textures, inputPath.c_str(), error, genMip, pitch)) {
 			std::cerr << "Parse textures failed because: " << error << '\n';
 			return 0;
 		}
-		Export(textures, outputPath);
+		Export(textures, outputPath.c_str());
+	}
+	else
+	{
+		std::cerr << "Mode is not defined or supported" << '\n';
+		return 0;
 	}
 
 	return 0;
