@@ -78,7 +78,7 @@ public:
 	DescriptorHeapRing			m_DsvHeap;
 	CommandQueue				m_RenderQueue;
 	Fence						m_Fence;
-	uint64_t					m_FenceValue;
+	uint64_t					m_FenceValue = 1;
 	SwapChain					m_SwapChain;
 	std::unique_ptr<Texture>	m_BackBuffers[2];
 

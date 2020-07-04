@@ -115,9 +115,6 @@ void RenderDevice::Execute()
 	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
 
 	m_ppCommandLists.clear();
-
-	m_Fence.CPUWaitFor(m_FenceValue);
-	m_FenceValue++;
 }
 
 void RenderDevice::ExecuteAndPresent()
@@ -128,13 +125,12 @@ void RenderDevice::ExecuteAndPresent()
 	m_ppCommandLists.clear();
 
 	m_SwapChain.ptr->Present(1, 0);
-	
-	m_Fence.CPUWaitFor(m_FenceValue);
-	m_FenceValue++;
 }
 
 void RenderDevice::WaitForIdle()
 {
+	m_Fence.CPUWaitFor(m_FenceValue);
+	m_FenceValue++;
 }
 
 Texture* RenderDevice::GetBackBuffer(uint32_t index)

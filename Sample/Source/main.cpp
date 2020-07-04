@@ -154,12 +154,18 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 			// app update
 			sample.Update(*renderDevice, elaspedTime);
 			static ComPtr<IDXGraphicsAnalysis> ga;
-			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK)) {
+			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK)) 
+			{
 				ga->BeginCapture();
 				renderDevice->ExecuteAndPresent();
+				renderDevice->WaitForIdle();
 				ga->EndCapture();
 			}
-			else renderDevice->ExecuteAndPresent();
+			else 
+			{
+				renderDevice->ExecuteAndPresent();
+				renderDevice->WaitForIdle();
+			}
 
 			elaspedTime = 0.0f;
 			start = end;
