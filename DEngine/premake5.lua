@@ -10,6 +10,7 @@ project "DECore"
 	{ 
 		"Source/DECore/**.h", 
 		"Source/DECore/**.cpp",
+		"Source/DECore/**.natvis",
 	}
 
 	filter "configurations:Debug"

@@ -34,9 +34,10 @@ public:
 		if (size > 0)
 		{
 			m_hElements.Set(sizeof(T) * size);
-			for (uint32_t i = 0; i < size; ++i) 
+			m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
+			for (uint32_t i = 0; i < size; ++i)
 			{
-				new (&this->operator[](i)) T();
+				new (&m_pBegin[i]) T();
 			}
 		}
 	}
@@ -52,6 +53,7 @@ public:
 		m_hElements.m_counter++;
 		m_iSize = other.m_iSize;
 		m_iCapacity = other.m_iCapacity;
+		m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
 	}
 
 	/** @brief	Move the other handle from another array, and invalidate it
@@ -65,6 +67,7 @@ public:
 		m_hElements.m_counter++;
 		m_iSize = other.m_iSize;
 		m_iCapacity = other.m_iCapacity;
+		m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
 		return *this;
 	}
 
@@ -97,7 +100,7 @@ public:
 		{
 			reserve(m_iCapacity * 2);
 		}
-		((T*)m_hElements.Raw())[m_iSize] = item;
+		m_pBegin[m_iSize] = item;
 		m_iSize++;
 	}
 
@@ -115,7 +118,7 @@ public:
 		{
 			reserve(m_iCapacity * 2);
 		}
-		((T*)m_hElements.Raw())[m_iSize] = std::move(item);
+		m_pBegin[m_iSize] = std::move(item);
 		m_iSize++;
 	}
 
@@ -134,10 +137,10 @@ public:
 		{
 			reserve(m_iCapacity * 2);
 		}
-		new (&((T*)m_hElements.Raw())[m_iSize]) T(std::forward<Args>(args)...);
+		new (&m_pBegin[m_iSize]) T(std::forward<Args>(args)...);
 		m_iSize++;
 
-		return ((T*)m_hElements.Raw())[m_iSize];
+		return m_pBegin[m_iSize];
 	}
 
 	/** @brief Resize the array and construct all elements
@@ -171,6 +174,7 @@ public:
 				m_hElements.Free();
 			}
 			m_hElements = hNewElements;
+			m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
 		}
 	}
 
@@ -179,7 +183,7 @@ public:
 	{
 		if (m_iCapacity > 0)
 		{
-			memset(m_hElements.Raw(), NULL, sizeof(T) * m_iSize);
+			memset(m_pBegin, NULL, sizeof(T) * m_iSize);
 		}
 		m_iSize = 0;
 	}
@@ -191,7 +195,7 @@ public:
 	*/
 	T& operator[](const int index) const
 	{
-		return ((T*)m_hElements.Raw())[index];
+		return m_pBegin[index];
 	}
 
 	/** @brief Return the pointer to the beginning of this array
@@ -200,7 +204,7 @@ public:
 	*/
 	T* data() const
 	{
-		return ((T*)m_hElements.Raw());
+		return m_pBegin;
 	}
 
 	/** @brief Return the pointer to the beginning of this array
@@ -209,7 +213,7 @@ public:
 	*/
 	iterator begin()
 	{
-		return data();
+		return m_pBegin;
 	}		
 	
 	/** @brief Return the const pointer to the beginning of this array
@@ -218,7 +222,7 @@ public:
 	*/
 	const_iterator begin() const
 	{
-		return data();
+		return m_pBegin;
 	}	
 	
 	/** @brief Return the pointer to the end of this array
@@ -227,7 +231,7 @@ public:
 	*/
 	iterator end()
 	{
-		return data() + size();
+		return m_pBegin + m_iSize;
 	}	
 	
 	/** @brief Return the const pointer to the end of this array
@@ -236,7 +240,7 @@ public:
 	*/
 	const_iterator end() const
 	{
-		return data() + size();
+		return m_pBegin + m_iSize;
 	}
 
 	/** @brief Return reference to the last element
@@ -260,6 +264,7 @@ public:
 private:
 
 	Handle					m_hElements;		// the handle array containing the exact data
+	T*						m_pBegin;			// the cached pointer to the first element
 	std::size_t				m_iSize = 0;		// the current size of array
 	std::size_t				m_iCapacity = 0;	// the current capacity
 };
