@@ -51,6 +51,11 @@ LRESULT WINAPI MsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 //-----------------------------------------------------------------------------
 INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 {
+	constexpr uint32_t WINDOW_WIDTH = 1024;
+	constexpr uint32_t WINDOW_HEIGHT = 768;
+	constexpr uint32_t WINDOW_OFFSET_X = 100;
+	constexpr uint32_t WINDOW_OFFSET_Y = 100;
+
 	UNREFERENCED_PARAMETER(hInst);
 
 	// Register the window class
@@ -59,22 +64,30 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	wc.style = CS_CLASSDC;
 	wc.lpfnWndProc = MsgProc;
 	wc.hInstance = GetModuleHandle(NULL);
-	wc.lpszClassName = _T("namespaceDE");
+	wc.lpszClassName = _T("DE");
 
 	RegisterClassEx(&wc);
 
+	// calculate desired rect size with title bar and other things
+	RECT rect;
+	rect.left = WINDOW_OFFSET_X;
+	rect.right = WINDOW_OFFSET_X + WINDOW_WIDTH;
+	rect.top = WINDOW_OFFSET_Y;
+	rect.bottom = WINDOW_OFFSET_Y + WINDOW_HEIGHT;
+	::AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+
 	// Create the application's window
 	HWND hWnd = CreateWindow(wc.lpszClassName,
-							 __T("DE Sample"),
-							 WS_OVERLAPPEDWINDOW,
-							 100,
-							 100,
-							 1024,
-							 768,
-							 NULL,
-							 NULL,
-							 wc.hInstance,
-							 NULL);
+		__T("DE Sample"),
+		WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX, // disable resize for now
+		rect.left,
+		rect.top,
+		rect.right - rect.left,
+		rect.bottom - rect.top,
+		NULL,
+		NULL,
+		wc.hInstance,
+		NULL);
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	UpdateWindow(hWnd);
@@ -90,8 +103,8 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 	RenderDevice::Desc desc = {};
 	desc.hWnd_ = hWnd;
-	desc.windowWidth_ = 1024;
-	desc.windowHeight_ = 768;
+	desc.windowWidth_ = WINDOW_WIDTH;
+	desc.windowHeight_ = WINDOW_HEIGHT;
 	desc.backBufferCount_ = 2;
 	RenderDevice *renderDevice = new RenderDevice();
 	renderDevice->Init(desc);
@@ -99,9 +112,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	// init imgui setup
 	ImGui::CreateContext();
 	ImGuiIO &io = ImGui::GetIO();
-	RECT rect;
-	::GetClientRect(hWnd, &rect);
-	io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+	io.DisplaySize = ImVec2(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	SampleModel* sample = new SampleModel();
 	sample->Setup(renderDevice);
@@ -141,9 +152,6 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 			ImGuiIO &io = ImGui::GetIO();
 			if (::GetForegroundWindow() == hWnd)
 			{
-				RECT rect;
-				::GetClientRect(hWnd, &rect);
-				io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 				io.MousePos = ImVec2((float)Mouse::m_currState.cursorPos.x, (float)(Mouse::m_currState.cursorPos.y));
 				io.MouseDown[0] = Mouse::m_currState.Buttons[0];
 				io.MouseDown[1] = Mouse::m_currState.Buttons[1];
@@ -153,7 +161,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 			// app update
 			sample->Update(*renderDevice, elaspedTime);
 			static ComPtr<IDXGraphicsAnalysis> ga;
-			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK)) 
+			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK))
 			{
 				ga->BeginCapture();
 				renderDevice->ExecuteAndPresent();
@@ -161,7 +169,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 				ga->EndCapture();
 				ga.Reset();
 			}
-			else 
+			else
 			{
 				renderDevice->ExecuteAndPresent();
 				renderDevice->WaitForIdle();
