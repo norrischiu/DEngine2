@@ -66,8 +66,10 @@ struct MaterialParameter
 struct Material final : public Pool<Material, 512>
 {
 	Material() = default;
+	~Material() = default;
 	Material(const Material&) = delete;
 	Material& operator=(const Material&) = delete;
+
 	ShadingType shadingType;
 	Texture m_Textures[5] = {};
 	// 8 float

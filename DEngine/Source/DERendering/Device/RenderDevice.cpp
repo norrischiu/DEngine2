@@ -67,13 +67,12 @@ bool RenderDevice::Init(const Desc& desc)
 
 	for (uint32_t i = 0; i < desc.backBufferCount_; ++i)
 	{
-		ID3D12Resource* backBuffer = nullptr;
-		m_SwapChain.ptr->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
 		m_BackBuffers[i] = std::make_unique<Texture>();
-		m_BackBuffers[i]->Init(backBuffer);
+		m_BackBuffers[i]->Init(m_SwapChain.backBuffers[i]);
 	}
 
 	m_ppCommandLists.reserve(256);
+	adapter->Release();
 
 	return true;
 }

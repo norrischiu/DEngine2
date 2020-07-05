@@ -258,3 +258,10 @@ void SampleModel::SetupUI()
 	});
 	ImGui::End();
 }
+
+SampleModel::~SampleModel()
+{
+	Texture::ReleaseDefault();
+	Material::Release();
+	Mesh::Release();
+}

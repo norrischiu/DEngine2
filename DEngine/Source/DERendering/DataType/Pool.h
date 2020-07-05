@@ -28,6 +28,14 @@ public:
 		return Get(i);
 	}
 
+	static void Release()
+	{
+		for (const auto& obj : m_Objects)
+		{
+			obj.~T();
+		}
+	}
+
 	static T& Get(uint32_t i)
 	{
 		assert(i < m_iCount);

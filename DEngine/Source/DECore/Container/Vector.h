@@ -74,6 +74,10 @@ public:
 	/** @brief Free the memory used by this array's items */
 	~MyArray()
 	{
+		for (uint32_t i = 0; i < m_iSize; ++i)
+		{
+			m_pBegin[i].~T();
+		}
 		m_hElements.Free();
 	}
 

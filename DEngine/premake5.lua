@@ -32,7 +32,7 @@ project "DERendering"
 	defines {"_CRT_SECURE_NO_WARNINGS"}
 	includedirs { "Source/", "Source/DERendering/" }
 	buildoptions { "/sdl" } -- code generation for uninitialized variable
-	links { "DECore", "D3d12", "DXGI" }
+	links { "DECore", "D3d12", "DXGI", "dxguid" }
 	
 	files 
 	{ 

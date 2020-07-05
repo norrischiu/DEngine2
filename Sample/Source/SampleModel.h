@@ -21,7 +21,7 @@ class SampleModel
 {
 public:
 	SampleModel() = default;
-	~SampleModel() = default;
+	~SampleModel();
 
 	void Setup(DE::RenderDevice* renderDevice);
 	void Update(DE::RenderDevice& renderDevice, float dt);

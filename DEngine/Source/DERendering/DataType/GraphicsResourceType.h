@@ -19,6 +19,12 @@ public:
 	Texture(const Texture&) = default;
 	~Texture() = default;
 
+	static Texture WHITE;
+	static void ReleaseDefault()
+	{
+		Texture::WHITE.~Texture();
+	}
+
 	void Init(ID3D12Resource* resource)
 	{
 		ptr = resource;
@@ -61,8 +67,6 @@ public:
 	ComPtr<ID3D12Resource> ptr;
 	D3D12_RESOURCE_DESC m_Desc;
 	uint32_t m_iNumSubresources;
-
-	static Texture WHITE;
 };
 
 struct Buffer
@@ -214,7 +218,10 @@ public:
 	RootSignature& operator=(const RootSignature&) = delete;
 	~RootSignature()
 	{
-		ptr->Release();
+		if (ptr)
+		{
+			ptr->Release();
+		}
 	}
 
 	void Add(ReadOnlyResourceDefinition* defs, uint32_t num)

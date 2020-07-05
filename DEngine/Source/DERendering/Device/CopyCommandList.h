@@ -42,8 +42,6 @@ public:
 
 private:
 
-	size_t SuballocateFromBuffer(size_t size, size_t alignment);
-
 	Buffer m_UploadBuffer;
 	void* m_pUploadBufferPtr;
 	size_t m_Offset;

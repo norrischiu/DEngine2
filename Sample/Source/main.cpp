@@ -103,16 +103,15 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	::GetClientRect(hWnd, &rect);
 	io.DisplaySize =  ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
 
-	SampleModel sample;
-	sample.Setup(renderDevice);
+	SampleModel* sample = new SampleModel();
+	sample->Setup(renderDevice);
 
 	// Show the window
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	UpdateWindow(hWnd);
 	ShowCursor(true);
 
-	/// Timer
-	//Timer m_Timer;
+	// Timer
 	const float FPS = 30.0f;
 	float elaspedTime = 0.0f;
 	auto start = std::chrono::high_resolution_clock::now();
@@ -152,7 +151,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 			ImGui::NewFrame();
 
 			// app update
-			sample.Update(*renderDevice, elaspedTime);
+			sample->Update(*renderDevice, elaspedTime);
 			static ComPtr<IDXGraphicsAnalysis> ga;
 			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK)) 
 			{
@@ -160,6 +159,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 				renderDevice->ExecuteAndPresent();
 				renderDevice->WaitForIdle();
 				ga->EndCapture();
+				ga.Reset();
 			}
 			else 
 			{
@@ -178,6 +178,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 		elaspedTime += std::chrono::duration<float>(end - start).count();
 	}
 
+	delete sample;
 	delete renderDevice;
 	renderDevice = nullptr;
 

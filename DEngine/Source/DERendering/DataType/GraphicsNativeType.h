@@ -3,6 +3,7 @@
 // Window
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <dxgidebug.h>
 #include <wrl/client.h>
 // Engine
 #include <DERendering/DERendering.h>
@@ -24,6 +25,11 @@ public:
 	{
 		ptr->Release();
 #if DEBUG
+		if (m_pDXGIDebug)
+		{
+			m_pDXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_DETAIL);
+			m_pDXGIDebug->Release();
+		}
 		m_pDebugController->Release();
 #endif
 	}
@@ -31,6 +37,8 @@ public:
 	void Init(bool debug)
 	{
 		HRESULT hr = {};
+		hr = CreateDXGIFactory1(IID_PPV_ARGS(&ptr));
+		assert(hr == S_OK);
 #if DEBUG
 		if (debug) {
 			hr = D3D12GetDebugInterface(IID_PPV_ARGS(&m_pDebugController));
@@ -38,17 +46,23 @@ public:
 			{
 				m_pDebugController->EnableDebugLayer();
 			}
+			auto hModule = GetModuleHandle("Dxgidebug.dll");
+			typedef HRESULT(*func)(REFIID, void**);
+			func DXGIGetDebugInterface = (func)GetProcAddress(hModule, "DXGIGetDebugInterface");
+			if (DXGIGetDebugInterface)
+			{
+				DXGIGetDebugInterface(IID_PPV_ARGS(&m_pDXGIDebug));
+			}
 		}
 #endif
-		hr = CreateDXGIFactory1(IID_PPV_ARGS(&ptr));
-		assert(hr == S_OK);
 	}
 
 	IDXGIFactory4* ptr;
 
 private:
 #if DEBUG
-	ID3D12Debug* m_pDebugController;
+	ID3D12Debug* m_pDebugController; 
+	IDXGIDebug* m_pDXGIDebug; 
 #endif
 };
 
@@ -71,8 +85,6 @@ public:
 	}
 
 	ID3D12Device* ptr;
-private:
-	IDXGIAdapter3* m_Adapter;
 };
 
 class CommandQueue final
@@ -80,10 +92,15 @@ class CommandQueue final
 public:
 	CommandQueue() = default;
 	CommandQueue(const CommandQueue&) = delete;
+	CommandQueue(CommandQueue&&) = delete;
 	CommandQueue& operator=(const CommandQueue&) = delete;
+	CommandQueue& operator=(CommandQueue&&) = delete;
 	~CommandQueue()
 	{
-		ptr->Release();
+		if (ptr)
+		{
+			ptr->Release();
+		}
 	}
 
 	void Init(const GraphicsDevice& device, D3D12_COMMAND_LIST_TYPE type)
@@ -108,6 +125,13 @@ public:
 	SwapChain& operator=(const SwapChain&) = delete;
 	~SwapChain()
 	{
+		for (uint32_t i = 0; i < backBufferCount; ++i)
+		{
+			if (backBuffers[i])
+			{
+				backBuffers[i]->Release();
+			}
+		}
 		if (ptr)
 		{
 			ptr->Release();
@@ -131,9 +155,18 @@ public:
 		HRESULT hr = {};
 		hr = graphicsInfra.ptr->CreateSwapChain(commandQueue.ptr, &swapChainDesc, &ptr);
 		assert(hr == S_OK);
+
+		for (uint32_t i = 0; i < backBufferCount; ++i)
+		{
+			ptr->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]));
+		}
+
+		this->backBufferCount = backBufferCount;
 	}
 
 	IDXGISwapChain* ptr;
+	ID3D12Resource* backBuffers[4];
+	uint32_t backBufferCount;
 };
 
 class CommandList final
@@ -141,8 +174,9 @@ class CommandList final
 public:
 	CommandList() = default;
 	CommandList(const CommandList&) = delete;
-	CommandList& operator=(CommandList&&) = default;
-	CommandList& operator=(const CommandList&) = default;
+	CommandList(CommandList&&) = delete;
+	CommandList& operator=(CommandList&&) = delete;
+	CommandList& operator=(const CommandList&) = delete;
 	~CommandList()
 	{
 		if (ptr)
@@ -190,7 +224,10 @@ public:
 	DescriptorHeap() = default;
 	DescriptorHeap(const DescriptorHeap&) = default;
 	DescriptorHeap& operator=(const DescriptorHeap&) = default;
-	~DescriptorHeap() = default;
+	~DescriptorHeap()
+	{
+		ptr.Reset();
+	}
 
 	void Init(const GraphicsDevice& device, uint32_t descriptorCount, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 	{
@@ -296,7 +333,10 @@ public:
 	ComputePipelineState& operator=(const ComputePipelineState&) = delete;
 	~ComputePipelineState()
 	{
-		ptr->Release();
+		if (ptr)
+		{
+			ptr->Release();
+		}
 	}
 
 	void Init(const GraphicsDevice& device, const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
@@ -317,7 +357,10 @@ public:
 	Fence& operator=(const Fence&) = delete;
 	~Fence()
 	{
-		ptr->Release();
+		if (ptr)
+		{
+			ptr->Release();
+		}
 	}
 
 	void Init(const GraphicsDevice& device, uint64_t initialValue = 0)
