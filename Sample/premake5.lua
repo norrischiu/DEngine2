@@ -34,6 +34,7 @@ project "Sample"
 		targetdir "Bin/Debug"
 		objdir "Intermediate/Debug"
 		symbols "on"
+		debugdir "Bin/Debug"
 
 --	filter "configurations:Release"
 --		defines { "NDEBUG" }
