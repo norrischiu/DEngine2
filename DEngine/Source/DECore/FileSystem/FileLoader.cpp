@@ -25,7 +25,7 @@ void FileLoader::LoadSync(const char* path, Vector<char>& output)
 struct LoadFileData
 {
 	const char* path;
-	Vector<char>& output;
+	Vector<char>* output;
 };
 
 void LoadFile(void* data)
@@ -34,19 +34,20 @@ void LoadFile(void* data)
 	std::ifstream fs;
 	fs.open(pData->path, std::ifstream::in | std::ifstream::binary | std::ifstream::ate);
 	assert(fs);
-	pData->output.resize(fs.tellg());
+	pData->output->resize(fs.tellg());
 	fs.seekg(0, fs.beg);
-	fs.read(pData->output.data(), pData->output.size());
+	fs.read(pData->output->data(), pData->output->size());
 	fs.close();
 }
 
-Job* FileLoader::LoadAsync(const char* path, Vector<char>& output)
+JobFuture<Vector<char>> FileLoader::LoadAsync(const char* path)
 {
+	Vector<char>* output = new Vector<char>();
 	Vector<Job::Desc> jobDescs(1);
 	LoadFileData* data = new LoadFileData{ path, output };
 	Job::Desc desc(&LoadFile, data, nullptr);
 	jobDescs[0] = std::move(desc);
-	return JobScheduler::Instance()->Run(jobDescs);
+	return JobFuture<Vector<char>>( JobScheduler::Instance()->Run(jobDescs), output );
 }
 
 }
