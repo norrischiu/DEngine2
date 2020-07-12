@@ -108,6 +108,7 @@ void JobWorker::FinishJob(Job* pJob)
 		{
 			FinishJob(pJob->m_pParent);
 			pJob->m_iUnfinished--; // atomic
+			delete pJob->m_pData;
 		}
 	}
 }
