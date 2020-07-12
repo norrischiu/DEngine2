@@ -13,18 +13,10 @@ namespace DE
 
 bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture &cubemap, Texture &prefilteredEnvMap, Texture &LUT)
 {
-	Vector<char> vs;
-	Vector<char> ps;
-	Vector<char> fullscreenVs;
-	Vector<char> convolutePs;
-	Job *vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso", vs);
-	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job *psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PrefilterEnvironmentMap.ps.cso", ps);
-	JobScheduler::Instance()->WaitOnMainThread(psCounter);
-	Job *fullscreenVsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Fullscreen.vs.cso", fullscreenVs);
-	JobScheduler::Instance()->WaitOnMainThread(fullscreenVsCounter);
-	Job *convolutePsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteBRDFIntegrationMap.ps.cso", convolutePs);
-	JobScheduler::Instance()->WaitOnMainThread(convolutePsCounter);
+	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso");
+	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\PrefilterEnvironmentMap.ps.cso");
+	auto fullscreenVs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Fullscreen.vs.cso");
+	auto convolutePs = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteBRDFIntegrationMap.ps.cso");
 
 	{
 		ConstantDefinition constants[2] = {
@@ -42,8 +34,9 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = data.rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
-		VS.pShaderBytecode = vs.data();
-		VS.BytecodeLength = vs.size();
+		auto vsBlob = vs.WaitGet();
+		VS.pShaderBytecode = vsBlob.data();
+		VS.BytecodeLength = vsBlob.size();
 		desc.VS = VS;
 
 		InputLayout inputLayout;
@@ -53,8 +46,9 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
 		D3D12_SHADER_BYTECODE PS;
-		PS.pShaderBytecode = ps.data();
-		PS.BytecodeLength = ps.size();
+		auto psBlob = ps.WaitGet();
+		PS.pShaderBytecode = psBlob.data();
+		PS.BytecodeLength = psBlob.size();
 		desc.PS = PS;
 		D3D12_RASTERIZER_DESC rasterizerDesc = {};
 		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
@@ -78,16 +72,19 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 			desc.RTVFormats[0] = LUT.m_Desc.Format;
 
 			D3D12_SHADER_BYTECODE VS;
-			VS.pShaderBytecode = fullscreenVs.data();
-			VS.BytecodeLength = fullscreenVs.size();
+			auto vsBlob = fullscreenVs.WaitGet();
+			VS.pShaderBytecode = vsBlob.data();
+			VS.BytecodeLength = vsBlob.size();
+
 			desc.VS = VS;
 
 			InputLayout inputLayout;
 			desc.InputLayout = inputLayout.desc;
 			// desc.InputLayout = InputLayout::Null().desc;
 			D3D12_SHADER_BYTECODE PS;
-			PS.pShaderBytecode = convolutePs.data();
-			PS.BytecodeLength = convolutePs.size();
+			auto psBlob = convolutePs.WaitGet();
+			PS.pShaderBytecode = psBlob.data();
+			PS.BytecodeLength = psBlob.size();
 			desc.PS = PS;
 			data.convolutePso.Init(renderDevice->m_Device, desc);
 		}

@@ -13,21 +13,10 @@ namespace DE
 
 void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 {
-	Vector<char> vs;
-	Vector<char> ps;
-	Vector<char> noNormalMapPs;
-	Vector<char> positionOnlyVs;
-	Vector<char> albedoOnlyPs;
-	Job *vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso", vs);
-	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job *psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso", ps);
-	JobScheduler::Instance()->WaitOnMainThread(psCounter);
-	Job *noNormalPsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr_NoNormalMap.ps.cso", noNormalMapPs);
-	JobScheduler::Instance()->WaitOnMainThread(noNormalPsCounter);
-	Job *positionOnlyVsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionOnly.vs.cso", positionOnlyVs);
-	JobScheduler::Instance()->WaitOnMainThread(positionOnlyVsCounter);
-	Job *albedoOnlyPsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\AlbedoOnly.ps.cso", albedoOnlyPs);
-	JobScheduler::Instance()->WaitOnMainThread(albedoOnlyPsCounter);
+	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso");
+	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso");
+	auto noNormalMapPs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr_NoNormalMap.ps.cso");
+	auto albedoOnlyPs = FileLoader::LoadAsync("..\\Assets\\Shaders\\AlbedoOnly.ps.cso");
 
 	{
 		ConstantDefinition constants[] =
@@ -58,8 +47,9 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = m_rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
-		VS.pShaderBytecode = vs.data();
-		VS.BytecodeLength = vs.size();
+		auto vsBlob = vs.WaitGet();
+		VS.pShaderBytecode = vsBlob.data();
+		VS.BytecodeLength = vsBlob.size();
 		desc.VS = VS;
 
 		InputLayout inputLayout;
@@ -72,8 +62,9 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
 		D3D12_SHADER_BYTECODE PS;
-		PS.pShaderBytecode = ps.data();
-		PS.BytecodeLength = ps.size();
+		auto psBlob = ps.WaitGet();
+		PS.pShaderBytecode = psBlob.data();
+		PS.BytecodeLength = psBlob.size();
 		desc.PS = PS;
 		D3D12_RASTERIZER_DESC rasterizerDesc = {};
 		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
@@ -100,18 +91,18 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 
 		{
 			D3D12_SHADER_BYTECODE PS;
-			PS.pShaderBytecode = noNormalMapPs.data();
-			PS.BytecodeLength = noNormalMapPs.size();
+			auto blob = noNormalMapPs.WaitGet();
+			PS.pShaderBytecode = blob.data();
+			PS.BytecodeLength = blob.size();
 			desc.PS = PS;
-
 			m_noNormalMapPso.Init(renderDevice->m_Device, desc);
 		}
 		{
 			D3D12_SHADER_BYTECODE PS;
-			PS.pShaderBytecode = albedoOnlyPs.data();
-			PS.BytecodeLength = albedoOnlyPs.size();
+			auto blob = albedoOnlyPs.WaitGet();
+			PS.pShaderBytecode = blob.data();
+			PS.BytecodeLength = blob.size();
 			desc.PS = PS;
-
 			m_albedoOnlyPso.Init(renderDevice->m_Device, desc);
 		}
 	}

@@ -13,15 +13,9 @@ namespace DE
 
 bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& equirectangularMap, Texture& cubemap, Texture& irradianceMap)
 {
-	Vector<char> vs;
-	Vector<char> ps;
-	Vector<char> convolutePs;
-	Job* vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso", vs);
-	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\SampleEquirectangular.ps.cso", ps);
-	JobScheduler::Instance()->WaitOnMainThread(psCounter);
-	Job* convolutePsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteIrradianceMap.ps.cso", convolutePs);
-	JobScheduler::Instance()->WaitOnMainThread(convolutePsCounter);
+	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso");
+	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\SampleEquirectangular.ps.cso");
+	auto convolutePs = FileLoader::LoadAsync("..\\Assets\\Shaders\\ConvoluteIrradianceMap.ps.cso");
 
 	{
 		ConstantDefinition constant = { 0, D3D12_SHADER_VISIBILITY_VERTEX };
@@ -37,8 +31,9 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = data.rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
-		VS.pShaderBytecode = vs.data();
-		VS.BytecodeLength = vs.size();
+		auto vsBlob = vs.WaitGet();
+		VS.pShaderBytecode = vsBlob.data();
+		VS.BytecodeLength = vsBlob.size();
 		desc.VS = VS;
 
 		InputLayout inputLayout;
@@ -48,8 +43,9 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
 		D3D12_SHADER_BYTECODE PS;
-		PS.pShaderBytecode = ps.data();
-		PS.BytecodeLength = ps.size();
+		auto psBlob = ps.WaitGet();
+		PS.pShaderBytecode = psBlob.data();
+		PS.BytecodeLength = psBlob.size();
 		desc.PS = PS;
 		D3D12_RASTERIZER_DESC rasterizerDesc = {};
 		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
@@ -73,8 +69,9 @@ bool PrecomputeDiffuseIBLPass::Setup(RenderDevice* renderDevice, const Texture& 
 			desc.RTVFormats[0] = irradianceMap.m_Desc.Format;
 
 			D3D12_SHADER_BYTECODE PS;
-			PS.pShaderBytecode = convolutePs.data();
-			PS.BytecodeLength = convolutePs.size();
+			auto psBlob = convolutePs.WaitGet();
+			PS.pShaderBytecode = psBlob.data();
+			PS.BytecodeLength = psBlob.size();
 			desc.PS = PS;
 			data.convolutePso.Init(renderDevice->m_Device, desc);
 		}

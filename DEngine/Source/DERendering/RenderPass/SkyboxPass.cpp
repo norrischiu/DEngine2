@@ -10,12 +10,8 @@ namespace DE
 
 void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const Texture& equirectangularMap)
 {
-	Vector<char> vs;
-	Vector<char> ps;
-	Job* vsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.vs.cso", vs);
-	JobScheduler::Instance()->WaitOnMainThread(vsCounter);
-	Job* psCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.ps.cso", ps);
-	JobScheduler::Instance()->WaitOnMainThread(psCounter);
+	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.vs.cso");
+	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.ps.cso");
 
 	{
 		ConstantDefinition constant = { 0, D3D12_SHADER_VISIBILITY_VERTEX };
@@ -31,8 +27,9 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = data.rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
-		VS.pShaderBytecode = vs.data();
-		VS.BytecodeLength = vs.size();
+		auto vsBlob = vs.WaitGet();
+		VS.pShaderBytecode = vsBlob.data();
+		VS.BytecodeLength = vsBlob.size();
 		desc.VS = VS;
 
 		InputLayout inputLayout;
@@ -42,8 +39,9 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
 		D3D12_SHADER_BYTECODE PS;
-		PS.pShaderBytecode = ps.data();
-		PS.BytecodeLength = ps.size();
+		auto psBlob = ps.WaitGet();
+		PS.pShaderBytecode = psBlob.data();
+		PS.BytecodeLength = psBlob.size();
 		desc.PS = PS;
 		D3D12_RASTERIZER_DESC rasterizerDesc = {};
 		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;

@@ -13,11 +13,8 @@ namespace DE
 
 bool PrefilterAreaLightTexturePass::Setup(RenderDevice *renderDevice, const Data& data)
 {
-	Vector<char> cs, verticalCs;
-	Job *csCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\GaussianBlurHorizontal.cs.cso", cs);
-	JobScheduler::Instance()->WaitOnMainThread(csCounter);
-	Job *verticalCsCounter = FileLoader::LoadAsync("..\\Assets\\Shaders\\GaussianBlurVertical.cs.cso", verticalCs);
-	JobScheduler::Instance()->WaitOnMainThread(verticalCsCounter);
+	auto cs = FileLoader::LoadAsync("..\\Assets\\Shaders\\GaussianBlurHorizontal.cs.cso");
+	auto verticalCs = FileLoader::LoadAsync("..\\Assets\\Shaders\\GaussianBlurVertical.cs.cso");
 
 	{
 		ConstantDefinition constant = { 0, D3D12_SHADER_VISIBILITY_ALL };
@@ -32,15 +29,16 @@ bool PrefilterAreaLightTexturePass::Setup(RenderDevice *renderDevice, const Data
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = m_rootSignature.ptr;
-		desc.CS.pShaderBytecode = cs.data();
-		desc.CS.BytecodeLength = cs.size();
+		auto blob = cs.WaitGet();
+		desc.CS.pShaderBytecode = blob.data();
+		desc.CS.BytecodeLength = blob.size();
 
 		m_pso.Init(renderDevice->m_Device, desc);
 
 		{
-			desc.CS.pShaderBytecode = verticalCs.data();
-			desc.CS.BytecodeLength = verticalCs.size();
-
+			auto blob = verticalCs.WaitGet();
+			desc.CS.pShaderBytecode = blob.data();
+			desc.CS.BytecodeLength = blob.size();
 			m_verticalPso.Init(renderDevice->m_Device, desc);
 		}
 	}
