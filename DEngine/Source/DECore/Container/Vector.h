@@ -74,10 +74,7 @@ public:
 	/** @brief Free the memory used by this array's items */
 	~MyArray()
 	{
-		for (uint32_t i = 0; i < m_iSize; ++i)
-		{
-			m_pBegin[i].~T();
-		}
+		clear();
 		m_hElements.Free();
 	}
 
@@ -185,6 +182,10 @@ public:
 	/** @brief Clear the items in this array, leaving the capacity and allocated memory unchanged */
 	void clear()
 	{
+		for (uint32_t i = 0; i < m_iSize; ++i)
+		{
+			m_pBegin[i].~T();
+		}
 		if (m_iCapacity > 0)
 		{
 			memset(m_pBegin, NULL, sizeof(T) * m_iSize);
