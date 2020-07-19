@@ -167,7 +167,6 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 				renderDevice->ExecuteAndPresent();
 				renderDevice->WaitForIdle();
 				ga->EndCapture();
-				ga.Reset();
 			}
 			else
 			{
@@ -188,9 +187,12 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 	delete sample;
 	delete renderDevice;
-	renderDevice = nullptr;
+	sample = nullptr;
+	renderDevice = nullptr; 
 
+	ImGui::DestroyContext();
 	JobScheduler::Instance()->ShutDown();
+	MemoryManager::GetInstance()->Destruct();
 
 	UnregisterClass(wc.lpszClassName, wc.hInstance);
 	return 0;
