@@ -42,12 +42,12 @@ void LoadFile(void* data)
 
 JobFuture<Vector<char>> FileLoader::LoadAsync(const char* path)
 {
-	Vector<char>* output = new Vector<char>();
+	auto output = std::make_unique<Vector<char>>();
 	Vector<Job::Desc> jobDescs(1);
-	LoadFileData* data = new LoadFileData{ path, output };
+	LoadFileData* data = new LoadFileData{ path, output.get() };
 	Job::Desc desc(&LoadFile, data, nullptr);
 	jobDescs[0] = std::move(desc);
-	return JobFuture<Vector<char>>( JobScheduler::Instance()->Run(jobDescs), output );
+	return JobFuture<Vector<char>>( JobScheduler::Instance()->Run(jobDescs), std::move(output) );
 }
 
 }

@@ -12,9 +12,9 @@ template <class T>
 class JobFuture
 {
 public:
-	JobFuture(Job* job, T* output)
+	JobFuture(Job* job, std::unique_ptr<T> output)
 		: m_job(job)
-		, m_pOutput(output)
+		, m_pOutput(std::move(output))
 		, m_iCount(0)
 	{
 	}
@@ -30,7 +30,7 @@ public:
 
 		m_iCount++;
 		JobScheduler::Instance()->WaitOnMainThread(m_job);
-		return std::move(*m_pOutput.release());
+		return std::move(*m_pOutput);
 	}
 
 private:
