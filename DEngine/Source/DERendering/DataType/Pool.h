@@ -7,7 +7,7 @@
 namespace DE
 {
 
-namespace details
+namespace detail
 {
 	static uint32_t id = 0;
 }
@@ -62,6 +62,6 @@ private:
 
 template <class T, uint32_t N> T Pool<T, N>::m_Objects[N];
 template <class T, uint32_t N> std::atomic_uint32_t Pool<T, N>::m_iCount = 0;
-template <class T, uint32_t N> uint32_t Pool<T, N>::m_iID = details::id++;
+template <class T, uint32_t N> uint32_t Pool<T, N>::m_iID = detail::id++;
 
 }
