@@ -17,10 +17,10 @@ void EmptyJob(void*) {}
 void JobScheduler::StartUp(uint8_t numThreads)
 {
 	m_iNumWorker = numThreads;
-	m_Workers.resize(m_iNumWorker);
+	m_Workers.reserve(m_iNumWorker);
 	for (uint8_t cnt = 0; cnt < m_iNumWorker; ++cnt)
 	{		
-		m_Workers[cnt] = new JobWorker(this);
+		m_Workers.emplace_back(std::make_unique<JobWorker>(this));
 	}
 
 	for (uint8_t cnt = 1; cnt < m_iNumWorker; ++cnt) // index 0 is main thread
@@ -36,6 +36,7 @@ void JobScheduler::ShutDown()
 	{
 		m_Workers[cnt]->End();
 	}
+	m_Workers.clear();
 	
 	delete this;
 }

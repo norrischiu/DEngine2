@@ -3,12 +3,10 @@
 // Engine
 #include <DECore/DECore.h>
 #include <DECore/Container/Vector.h>
-#include <DECore/Job/Job.h>
+#include <DECore/Job/JobWorker.h>
 
 namespace DE
 {
-
-class JobWorker;
 
 class DllExport JobScheduler
 {
@@ -51,7 +49,7 @@ private:
 	static JobScheduler*				m_pInstance;
 
 	uint32_t							m_iNumWorker;
-	Vector<JobWorker*>					m_Workers;
+	Vector<std::unique_ptr<JobWorker>>	m_Workers;
 };
 
 }
