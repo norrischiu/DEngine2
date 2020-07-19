@@ -151,7 +151,7 @@ public:
 	void resize(size_t size)
 	{
 		reserve(size);
-		for (uint32_t i = m_iSize; i < size; ++i)
+		for (auto i = m_iSize; i < size; ++i)
 		{
 			push_back(T());
 		}

@@ -107,7 +107,7 @@ void LoadToMeshes(void *data)
 		}
 		fin.close();
 
-		std::size_t size = num * sizeof(float3);
+		uint32_t size = num * sizeof(float3);
 		mesh.m_Vertices.Init(pData->pDevice->m_Device, sizeof(float3), size);
 		mesh.m_Vertices.Update(vertices.data(), vertices.size() * sizeof(float3));
 	}
@@ -126,7 +126,7 @@ void LoadToMeshes(void *data)
 		}
 		fin.close();
 
-		std::size_t size = num * sizeof(float3);
+		uint32_t size = num * sizeof(float3);
 		mesh.m_Normals.Init(pData->pDevice->m_Device, sizeof(float3), size);
 		mesh.m_Normals.Update(normals.data(), normals.size() * sizeof(float3));
 	}
@@ -146,7 +146,7 @@ void LoadToMeshes(void *data)
 					fin >> tangents[n].x >> tangents[n].y >> tangents[n].z;
 				}
 
-				std::size_t size = num * sizeof(float3);
+				uint32_t size = num * sizeof(float3);
 				mesh.m_Tangents.Init(pData->pDevice->m_Device, sizeof(float3), size);
 				mesh.m_Tangents.Update(tangents.data(), tangents.size() * sizeof(float3));
 			}
@@ -169,7 +169,7 @@ void LoadToMeshes(void *data)
 					fin >> texCoords[n].x >> texCoords[n].y;
 				}
 
-				std::size_t size = num * sizeof(float2);
+				uint32_t size = num * sizeof(float2);
 				mesh.m_TexCoords.Init(pData->pDevice->m_Device, sizeof(float2), size);
 				mesh.m_TexCoords.Update(texCoords.data(), texCoords.size() * sizeof(float2));
 			}
@@ -191,7 +191,7 @@ void LoadToMeshes(void *data)
 		}
 		fin.close();
 
-		std::size_t size = num * sizeof(uint3);
+		uint32_t size = num * sizeof(uint3);
 		mesh.m_Indices.Init(pData->pDevice->m_Device, sizeof(uint32_t), size);
 		mesh.m_Indices.Update(indices.data(), indices.size() * sizeof(uint3));
 
@@ -279,7 +279,7 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 	auto *loadMeshCounter = JobScheduler::Instance()->Run(jobDescs);
 	JobScheduler::Instance()->WaitOnMainThread(loadMeshCounter);
 
-	m_pRenderDevice->Submit(commandLists.data(), commandLists.size());
+	m_pRenderDevice->Submit(commandLists.data(), static_cast<uint32_t>(commandLists.size()));
 	m_pRenderDevice->Execute();
 	m_pRenderDevice->WaitForIdle();
 }

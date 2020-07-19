@@ -107,7 +107,7 @@ void SampleModel::Setup(RenderDevice *renderDevice)
 	Texture LTCNormMap;
 	texLoader.Load(LTCNormMap, "..\\Assets\\SampleScene\\Textures\\LTCNormMap.tex", DXGI_FORMAT_R16G16B16A16_UNORM);
 	Texture filteredAreaLightTexture;
-	filteredAreaLightTexture.Init(renderDevice->m_Device, 2048, 2048, 1, log2f(2048) + 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	filteredAreaLightTexture.Init(renderDevice->m_Device, 2048, 2048, 1, static_cast<uint32_t>(log2f(2048)) + 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
 	m_Camera.Init(Vector3(0.0f, 0.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
 	m_commandList.Init(renderDevice);
