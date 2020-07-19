@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="DE::MyArray&lt;*&gt;">
+    <DisplayString Condition="m_hElements.m_counter == 0x7FF">{{Invalid}}</DisplayString>
     <DisplayString>{{Count = {m_iSize}}}</DisplayString>
     <Expand>
       <Item Name="[size]">m_iSize</Item>
