@@ -93,16 +93,7 @@ public:
 	*/
 	void push_back(const T& item)
 	{
-		if (m_iCapacity == 0)
-		{
-			reserve(1);
-		}
-		if (m_iSize >= m_iCapacity)
-		{
-			reserve(m_iCapacity * 2);
-		}
-		m_pBegin[m_iSize] = item;
-		m_iSize++;
+		emplace_back(item);
 	}
 
 	/** @brief Add an movable element at the end of this array
@@ -111,16 +102,7 @@ public:
 	*/
 	void push_back(T&& item)
 	{
-		if (m_iCapacity == 0)
-		{
-			reserve(1);
-		}
-		if (m_iSize >= m_iCapacity)
-		{
-			reserve(m_iCapacity * 2);
-		}
-		m_pBegin[m_iSize] = std::move(item);
-		m_iSize++;
+		emplace_back(std::move(item));
 	}
 
 	/** @brief Construct an element in place at the end of this array
@@ -142,6 +124,13 @@ public:
 		m_iSize++;
 
 		return m_pBegin[m_iSize];
+	}
+
+	/** @brief Remove the last element, keep capacity unchanged */
+	void pop_back()
+	{
+		back().~T();
+		m_iSize--;
 	}
 
 	/** @brief Resize the array and construct all elements
