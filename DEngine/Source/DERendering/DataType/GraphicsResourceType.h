@@ -138,7 +138,9 @@ public:
 	}
 
 	ComPtr<ID3D12Resource> ptr;
+	void* mappedPtr;
 	D3D12_RESOURCE_DESC m_Desc;
+	uint32_t offset = 0;
 };
 
 struct VertexBuffer final : public Buffer

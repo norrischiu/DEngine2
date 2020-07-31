@@ -38,7 +38,7 @@ void LoadToMaterials(void *data)
 	CopyCommandList &pCommandList = *pData->pCopyCommandList;
 	Material &mat = *pData->pMaterial;
 	sprintf(tmp, "%s\\%s.mate", pData->path, pData->materialName);
-	pCommandList.Init(pData->pDevice->m_Device);
+	pCommandList.Start();
 
 	std::ifstream fin;
 	fin.open(tmp, std::fstream::in);
@@ -239,7 +239,7 @@ void SceneLoader::Load(const char *sceneName, Scene &scene)
 			const uint32_t index = Material::Create().Index();
 			data->pMaterial = &Material::Get(index);
 			data->pDevice = m_pRenderDevice;
-			commandLists.emplace_back();
+			commandLists.emplace_back(m_pRenderDevice);
 			data->pCopyCommandList = &commandLists.back();
 			data->pTexLoader = &texLoader;
 			Job::Desc desc(&LoadToMaterials, data, nullptr);

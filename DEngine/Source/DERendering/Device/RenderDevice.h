@@ -9,6 +9,7 @@
 #include <DERendering/DataType/GraphicsResourceType.h>
 #include <DERendering/DataType/GraphicsViewType.h>
 #include <DERendering/Device/DescriptorHeapRing.h>
+#include <DERendering/Device/GpuBufferFencedPool.h>
 #include <DECore/Container/Vector.h>
 // C++
 #include <mutex>
@@ -71,6 +72,13 @@ public:
 	*/
 	Texture* GetBackBuffer(uint32_t index);
 
+	/** @brief Suballocate part of common upload buffer
+	*
+	*	@param required size
+	*	@return a Buffer object
+	*/
+	Buffer SuballocateUploadBuffer(uint32_t size);
+
 	GraphicsInfrastructure		m_GraphicsInfra;
 	GraphicsDevice				m_Device;
 	DescriptorHeapRing			m_shaderResourceHeap;
@@ -81,6 +89,8 @@ public:
 	uint64_t					m_FenceValue = 1;
 	SwapChain					m_SwapChain;
 	std::unique_ptr<Texture>	m_BackBuffers[2];
+
+	GpuBufferFencedPool			m_UploadBufferPool;
 
 	std::mutex					m_mutex;
 	Vector<ID3D12CommandList*>	m_ppCommandLists;

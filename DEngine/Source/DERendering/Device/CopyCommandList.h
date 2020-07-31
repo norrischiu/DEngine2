@@ -19,18 +19,20 @@ struct UploadTextureDesc final
 	uint32_t subResourceIndex = 0;
 };
 
+class RenderDevice;
+
 class CopyCommandList
 {
 public:
 
-	CopyCommandList() = default;
+	CopyCommandList(RenderDevice* pRenderDevice);
 	CopyCommandList(CopyCommandList&) = default;
 	CopyCommandList& operator=(const CopyCommandList&) = default;
 	CopyCommandList& operator=(CopyCommandList&&) = default;
 	CopyCommandList(CopyCommandList&&) = default;
 	~CopyCommandList() = default;
 
-	uint32_t Init(const GraphicsDevice& device);
+	void Start();
 
 	void UploadTexture(const uint8_t* source, const UploadTextureDesc& desc, DXGI_FORMAT format, Texture& destination);
 	void CopyTexture(Texture source, Texture destination);
@@ -42,11 +44,8 @@ public:
 
 private:
 
-	Buffer m_UploadBuffer;
-	void* m_pUploadBufferPtr;
-	size_t m_Offset;
-
 	CommandList m_CommandList;
+	RenderDevice* m_pRenderDevice;
 };
 
 }

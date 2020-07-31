@@ -95,8 +95,8 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 		data.font.Init(renderDevice->m_Device, width, height, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
-		CopyCommandList commandList;
-		commandList.Init(renderDevice->m_Device);
+		CopyCommandList commandList(renderDevice);
+		commandList.Start();
 		UINT uploadPitch = (width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
 
 		UploadTextureDesc desc;

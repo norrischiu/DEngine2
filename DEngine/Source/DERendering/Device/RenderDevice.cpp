@@ -23,6 +23,7 @@ RenderDevice::~RenderDevice()
 	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
 
 	m_Fence.CPUWaitFor(m_FenceValue);
+	m_UploadBufferPool.Release();
 }
 
 bool RenderDevice::Init(const Desc& desc)
@@ -71,6 +72,9 @@ bool RenderDevice::Init(const Desc& desc)
 		m_BackBuffers[i]->Init(m_SwapChain.backBuffers[i]);
 	}
 
+	// common upload buffer
+	m_UploadBufferPool.Init(this, D3D12_HEAP_TYPE_UPLOAD, 512 * 1024, 1);
+
 	m_ppCommandLists.reserve(256);
 	adapter->Release();
 
@@ -82,6 +86,8 @@ void RenderDevice::Reset()
 	m_shaderResourceHeap.Reset();
 	m_RtvHeap.Reset();
 	m_DsvHeap.Reset();
+
+	m_UploadBufferPool.Reset(m_FenceValue);
 }
 
 void RenderDevice::Submit(const CopyCommandList* commandLists, uint32_t num)
@@ -114,6 +120,8 @@ void RenderDevice::Execute()
 	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
 
 	m_ppCommandLists.clear();
+
+	Reset();
 }
 
 void RenderDevice::ExecuteAndPresent()
@@ -124,6 +132,8 @@ void RenderDevice::ExecuteAndPresent()
 	m_ppCommandLists.clear();
 
 	m_SwapChain.ptr->Present(1, 0);
+
+	Reset();
 }
 
 void RenderDevice::WaitForIdle()
@@ -135,6 +145,11 @@ void RenderDevice::WaitForIdle()
 Texture* RenderDevice::GetBackBuffer(uint32_t index)
 {
 	return m_BackBuffers[index].get();
+}
+
+Buffer RenderDevice::SuballocateUploadBuffer(uint32_t size)
+{
+	return m_UploadBufferPool.Allocate(m_FenceValue, size);
 }
 
 }

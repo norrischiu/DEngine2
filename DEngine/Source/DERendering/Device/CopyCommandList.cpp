@@ -1,20 +1,20 @@
 #include <DERendering/DERendering.h>
 #include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
+#include <DERendering/Device/RenderDevice.h>
 #include "CopyCommandList.h"
 
 namespace DE
 {
-
-uint32_t CopyCommandList::Init(const GraphicsDevice& device)
+CopyCommandList::CopyCommandList(RenderDevice * pRenderDevice)
+	: m_pRenderDevice(pRenderDevice)
 {
-	m_CommandList.Init(device, D3D12_COMMAND_LIST_TYPE_DIRECT); // TODO: use copy
+	m_CommandList.Init(m_pRenderDevice->m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT); // TODO: use copy
+}
+
+void CopyCommandList::Start()
+{
 	m_CommandList.Start();
-	m_UploadBuffer.Init(device, 512 * 1024 * 1024, D3D12_HEAP_TYPE_UPLOAD); // 512MB
-
-	m_UploadBuffer.ptr->Map(0, nullptr, &m_pUploadBufferPtr);
-
-	return 0;
 }
 
 void CopyCommandList::UploadTexture(const uint8_t* source, const UploadTextureDesc& desc, DXGI_FORMAT format, Texture& destination)
@@ -28,17 +28,20 @@ void CopyCommandList::UploadTexture(const uint8_t* source, const UploadTextureDe
 	footprint.Depth = desc.depth;
 	footprint.RowPitch = desc.rowPitch;
 
+	const uint32_t alignedSize = Align(desc.rowPitch * desc.height, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+	Buffer uploadBuffer = m_pRenderDevice->SuballocateUploadBuffer(alignedSize);
+
+	uint8_t* mappedPtr = static_cast<uint8_t*>(uploadBuffer.mappedPtr);
 	const uint8_t* ptr = source;
-	const size_t offset = m_Offset;
+	const size_t offset = uploadBuffer.offset;
 	size_t size = 0;
 	for (uint32_t y = 0; y < desc.height; y++)
 	{
-		uint8_t* pScan = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(m_pUploadBufferPtr) + offset + size);
+		uint8_t* pScan = reinterpret_cast<uint8_t*>(mappedPtr + offset + size);
 		memcpy(pScan, ptr, footprint.RowPitch);
 		ptr += desc.width * numComponent * desc.pitch;
 		size += footprint.RowPitch;
 	}
-	m_Offset += Align(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION dst;
 	dst.pResource = destination.ptr.Get();
@@ -46,7 +49,7 @@ void CopyCommandList::UploadTexture(const uint8_t* source, const UploadTextureDe
 	dst.SubresourceIndex = desc.subResourceIndex;
 	
 	D3D12_TEXTURE_COPY_LOCATION src;
-	src.pResource = m_UploadBuffer.ptr.Get();
+	src.pResource = uploadBuffer.ptr.Get();
 	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	src.PlacedFootprint.Offset = offset;
 	src.PlacedFootprint.Footprint = footprint;
