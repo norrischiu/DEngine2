@@ -189,7 +189,6 @@ void SampleModel::Update(RenderDevice &renderDevice, float dt)
 	renderDevice.Submit(&m_commandList, 1);
 
 	// Reset
-	renderDevice.Reset();
 	m_frameData.batcher.Reset();
 	m_frameData.pointLights.clear();
 	m_frameData.quadLights.clear();
