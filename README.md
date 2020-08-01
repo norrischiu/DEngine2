@@ -14,6 +14,8 @@ Created for quick engine and graphics features protyping on Windows only. A spir
 - SIMD maths library
 - Custom asset exporter
 
+![screenshot](screenshot.png)
+
 ## To run
 Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2017 is required. 
 
