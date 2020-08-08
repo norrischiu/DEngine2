@@ -29,6 +29,7 @@ void MemoryManager::Destruct()
 {
 	std::free(m_pRawHeapStart);
 	*m_pPool = nullptr;
+	delete this;
 }
 
 Handle MemoryManager::Allocate(size_t size)

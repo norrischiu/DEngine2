@@ -132,9 +132,7 @@ public:
 	{
 		if (!m_pInstance)
 		{
-			m_pInstance = reinterpret_cast<MemoryManager*>(std::malloc(sizeof(MemoryManager)));
-			new (m_pInstance) MemoryManager();
-			m_pInstance->ConstructDefaultPool();
+			m_pInstance = new MemoryManager();
 		}
 		return m_pInstance;
 	};
@@ -150,15 +148,6 @@ private:
 	*	--- Default Constructor
 	********************************************************************************/
 	MemoryManager() = default;
-
-	~MemoryManager()
-	{
-		if (m_pInstance)
-		{
-			m_pInstance->Destruct();
-			std::free(m_pInstance);
-		}
-	}
 
 	/********************************************************************************
 	*	--- Function:

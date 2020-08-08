@@ -1,6 +1,10 @@
 // main.cpp: This file contains the 'main' function. Program execution begins and ends there.
 
 // Window
+#if DEBUG
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
 #include <Windows.h>
 #include <d3d12.h>
 #include <tchar.h>
@@ -195,5 +199,8 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	MemoryManager::GetInstance()->Destruct();
 
 	UnregisterClass(wc.lpszClassName, wc.hInstance);
+#if DEBUG
+	_CrtDumpMemoryLeaks();
+#endif
 	return 0;
 }
