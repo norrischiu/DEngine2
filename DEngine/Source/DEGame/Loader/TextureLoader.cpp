@@ -97,13 +97,13 @@ void TextureLoader::Load(Texture& texture, const char* path, DXGI_FORMAT format/
 	m_pRenderDevice->WaitForIdle();
 }
 
-void TextureLoader::LoadDefaultTexture()
+void TextureLoader::LoadDefaultTexture(RenderDevice* pRenderDevice)
 {
-	CopyCommandList commandList(m_pRenderDevice);
+	CopyCommandList commandList(pRenderDevice);
 	commandList.Start();
 
 	Texture& white = Texture::WHITE;
-	white.Init(m_pRenderDevice->m_Device, 1, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
+	white.Init(pRenderDevice->m_Device, 1, 1, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	UploadTextureDesc desc;
 	desc.width = 1;
@@ -124,9 +124,9 @@ void TextureLoader::LoadDefaultTexture()
 
 	commandList.GetCommandList().ptr->ResourceBarrier(1, &barrier);
 
-	m_pRenderDevice->Submit(&commandList, 1);
-	m_pRenderDevice->Execute();
-	m_pRenderDevice->WaitForIdle();
+	pRenderDevice->Submit(&commandList, 1);
+	pRenderDevice->Execute();
+	pRenderDevice->WaitForIdle();
 }
 }
 

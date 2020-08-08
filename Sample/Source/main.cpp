@@ -8,7 +8,6 @@
 #include <Windows.h>
 #include <d3d12.h>
 #include <tchar.h>
-#include <DXProgrammableCapture.h>
 // Cpp
 #include <sstream>
 #include <iostream>
@@ -17,8 +16,8 @@
 #include <DECore/Memory/MemoryManager.h>
 #include <DECore/Job/JobScheduler.h>
 #include <DECore/Windows/WindowsMsgHandler.h>
-#include <DERendering/Device/RenderDevice.h>
 #include <DERendering/Imgui/imgui.h>
+#include <DEGame/Renderer/Renderer.h>
 
 #include "SampleModel.h"
 
@@ -105,21 +104,16 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 
 	JobScheduler::Instance()->StartUp(numThread);
 
-	RenderDevice::Desc desc = {};
-	desc.hWnd_ = hWnd;
-	desc.windowWidth_ = WINDOW_WIDTH;
-	desc.windowHeight_ = WINDOW_HEIGHT;
-	desc.backBufferCount_ = 2;
-	RenderDevice *renderDevice = new RenderDevice();
-	renderDevice->Init(desc);
-
-	// init imgui setup
-	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
-	io.DisplaySize = ImVec2(WINDOW_WIDTH, WINDOW_HEIGHT);
+	Renderer::Desc desc = {};
+	desc.hWnd = hWnd;
+	desc.windowWidth = WINDOW_WIDTH;
+	desc.windowHeight = WINDOW_HEIGHT;
+	desc.backBufferCount = 2;
+	Renderer* renderer = new Renderer();
+	renderer->Init(desc);
 
 	SampleModel* sample = new SampleModel();
-	sample->Setup(renderDevice);
+	sample->Setup(renderer);
 
 	// Show the window
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
@@ -127,7 +121,7 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 	ShowCursor(true);
 
 	// Timer
-	const float FPS = 30.0f;
+	const float FPS = 60.0f;
 	float elaspedTime = 0.0f;
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -163,20 +157,10 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 			ImGui::NewFrame();
 
 			// app update
-			sample->Update(*renderDevice, elaspedTime);
-			static ComPtr<IDXGraphicsAnalysis> ga;
-			if (!ga && (DXGIGetDebugInterface1(0, IID_PPV_ARGS(&ga)) == S_OK))
-			{
-				ga->BeginCapture();
-				renderDevice->ExecuteAndPresent();
-				renderDevice->WaitForIdle();
-				ga->EndCapture();
-			}
-			else
-			{
-				renderDevice->ExecuteAndPresent();
-				renderDevice->WaitForIdle();
-			}
+			sample->Update(elaspedTime);
+
+			renderer->Update(elaspedTime);
+			renderer->Render();
 
 			elaspedTime = 0.0f;
 			start = end;
@@ -189,12 +173,13 @@ INT WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR, INT)
 		elaspedTime += std::chrono::duration<float>(end - start).count();
 	}
 
-	delete sample;
-	delete renderDevice;
-	sample = nullptr;
-	renderDevice = nullptr; 
+	renderer->Destruct();
 
-	ImGui::DestroyContext();
+	delete sample;
+	delete renderer;
+	sample = nullptr;
+	renderer = nullptr;
+
 	JobScheduler::Instance()->ShutDown();
 	MemoryManager::GetInstance()->Destruct();
 
