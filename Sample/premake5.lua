@@ -1,5 +1,5 @@
 workspace "Sample"
-	configurations { "Debug", --[["Release"]] }
+	configurations { "Debug", "Release" }
 	startproject "Sample"
 	architecture "x64"
 	characterset "MBCS"
@@ -36,11 +36,13 @@ project "Sample"
 		symbols "on"
 		debugdir "Bin/Debug"
 
---	filter "configurations:Release"
---		defines { "NDEBUG" }
---		optimize "Full"
---		targetdir "Bin/Release"
---		objdir "Intermediate/Release"
+	filter "configurations:Release"
+		defines { "NDEBUG" }
+		optimize "Full"
+		targetdir "Bin/Release"
+		objdir "Intermediate/Release"
+		debugdir "Bin/Release"
+	filter {}
 
 	filter { 'files:**.vs.hlsl' }
 		buildcommands 'fxc.exe -Zi -E main -Od -T vs_5_0 -Fo $(OutputPath)../Assets/Shaders/%(Filename).cso %(FullPath)'
