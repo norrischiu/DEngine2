@@ -5,6 +5,7 @@
 #include <memory>
 // Engine
 #include <DECore/Job/Job.h>
+#include <DECore/Job/JobScheduler.h>
 
 namespace DE
 {

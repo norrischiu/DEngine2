@@ -1,13 +1,13 @@
 // Engine
 #include <DEGame/Component/Camera.h>
 #include <DEGame/Collection/Scene.h>
+#include <DERendering/Device/RenderDevice.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/RenderPass/PrecomputeDiffuseIBLPass.h>
 #include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
 #include <DERendering/RenderPass/PrefilterAreaLightTexturePass.h>
 #include <DERendering/RenderPass/SkyboxPass.h>
 #include <DERendering/RenderPass/UIPass.h>
-#include <DERendering/DataType/GraphicsNativeType.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
 

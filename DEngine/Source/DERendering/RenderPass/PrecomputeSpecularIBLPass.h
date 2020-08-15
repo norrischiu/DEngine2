@@ -1,7 +1,7 @@
 #pragma once
 
+// Engine
 #include <DERendering/DataType/GraphicsNativeType.h>
-#include <DERendering/DataType/GraphicsViewType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
 
 namespace DE
@@ -10,38 +10,31 @@ namespace DE
 class RenderDevice;
 class DrawCommandList;
 class FrameData;
-class Texture;
 
 class PrecomputeSpecularIBLPass
 {
+public:
 	struct Data final
 	{
 		uint32_t numRoughness = 5;
-		ConstantBufferView prefilterData[5];
-		ConstantBufferView LUTsize;
-
-		VertexBuffer cubeVertices;
-		Texture src;
-		Texture dst;
-
-		ConstantBufferView cbvs[6];
-		GraphicsPipelineState pso;
-		RootSignature rootSignature;
-
-		GraphicsPipelineState convolutePso;
+		Texture cubemap;
+		Texture prefilteredEnvMap;
 		Texture LUT;
-
-		RenderDevice* pDevice;
 	};
 
-public:
 	PrecomputeSpecularIBLPass() = default;
 
-	bool Setup(RenderDevice* renderDevice, const Texture& cubemap, Texture& prefilteredEnvMap, Texture& LUT);
+	bool Setup(RenderDevice* renderDevice, const Data& data);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
 private:
-	Data data;
+	Data m_data;
+	RenderDevice* m_pDevice;
+
+	VertexBuffer m_cubeVertices;
+	GraphicsPipelineState m_pso;
+	RootSignature m_rootSignature;
+	GraphicsPipelineState m_convolutePso;
 };
 
 } // namespace DE

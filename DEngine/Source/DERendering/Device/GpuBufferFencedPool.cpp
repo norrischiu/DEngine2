@@ -79,7 +79,7 @@ namespace DE
 	newBuffer.Init(m_pRenderDevice->m_Device, bufferSize, m_HeapType);
 	if (m_HeapType == D3D12_HEAP_TYPE_UPLOAD)
 	{
-		newBuffer.mappedPtr = newBuffer.Map();
+		newBuffer.mappedPtr = newBuffer.GetMappedPtr();
 	}
 
 	m_Buffers.push_back({ newBuffer, 0, bufferSize, fence });

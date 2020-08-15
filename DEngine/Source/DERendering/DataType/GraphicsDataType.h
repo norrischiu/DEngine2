@@ -60,7 +60,7 @@ enum ShadingType : uint8_t
 
 struct MaterialParameter
 {
-	float params[8];
+	float4 params[2];
 };
 
 struct Material final : public Pool<Material, 512>

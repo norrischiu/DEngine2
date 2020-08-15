@@ -64,16 +64,36 @@ void Renderer::Init(const Desc& desc)
 		data.filteredAreaLightTexture = filteredAreaLightTexture;
 		m_forwardPass.Setup(&m_RenderDevice, data);
 	}
-	m_precomputeDiffuseIBLPass.Setup(&m_RenderDevice, equirectangularMap, skybox, irradianceMap);
-	m_precomputeSpecularIBLPass.Setup(&m_RenderDevice, skybox, prefilteredEnvMap, BRDFIntegrationMap);
+	{
+		PrecomputeDiffuseIBLPass::Data data;
+		data.equirectangularMap = equirectangularMap;
+		data.cubemap = skybox;
+		data.irradianceMap = irradianceMap;
+		m_precomputeDiffuseIBLPass.Setup(&m_RenderDevice, data);
+	}
+	{
+		PrecomputeSpecularIBLPass::Data data;
+		data.cubemap = skybox;
+		data.prefilteredEnvMap = prefilteredEnvMap;
+		data.LUT = BRDFIntegrationMap;
+		m_precomputeSpecularIBLPass.Setup(&m_RenderDevice, data);
+	}
 	{
 		PrefilterAreaLightTexturePass::Data data;
 		data.src = areaLightTexture;
 		data.dst = filteredAreaLightTexture;
 		m_prefilterAreaLightTexturePass.Setup(&m_RenderDevice, data);
 	}
-	m_SkyboxPass.Setup(&m_RenderDevice, depth, skybox);
-	m_UIPass.Setup(&m_RenderDevice);
+	{
+		SkyboxPass::Data data;
+		data.cubemap = skybox;
+		data.depth = depth;
+		m_SkyboxPass.Setup(&m_RenderDevice, data);
+	}
+	{
+		UIPass::Data data;
+		m_UIPass.Setup(&m_RenderDevice, data);
+	}
 
 	m_Desc = desc;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
+// Engine
 #include <DERendering/DataType/GraphicsNativeType.h>
-#include <DERendering/DataType/GraphicsViewType.h>
 #include <DERendering/DataType/GraphicsResourceType.h>
 
 namespace DE
@@ -10,7 +10,6 @@ namespace DE
 class RenderDevice;
 class DrawCommandList;
 class FrameData;
-class Texture;
 
 class PrefilterAreaLightTexturePass
 {

@@ -96,7 +96,7 @@ void DrawCommandList::SetPipeline(const ComputePipelineState & pipeline)
 	m_CommandList.ptr->SetPipelineState(pipeline.ptr);
 }
 
-void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv, size_t offset/* = 0*/)
+void DrawCommandList::SetConstantResource(uint32_t index, const ConstantResource& resource)
 {
 	assert(m_pCurrSignature);
 	assert(index < m_pCurrSignature->constantNum);
@@ -104,12 +104,14 @@ void DrawCommandList::SetConstant(uint32_t index, const ConstantBufferView& cbv,
 	const uint32_t rootParamterIndex = m_pCurrSignature->constantDefs[index].rootParameterIndex;
 	if (m_pCurrSignature->type == RootSignature::Type::Graphics)
 	{
-		m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
+		m_CommandList.ptr->SetGraphicsRootConstantBufferView(rootParamterIndex, resource.buffer.ptr->GetGPUVirtualAddress() + resource.buffer.offset + resource.offset);
 
-	} else // Compute
-	{
-		m_CommandList.ptr->SetComputeRootConstantBufferView(rootParamterIndex, cbv.buffer.ptr->GetGPUVirtualAddress() + offset);
 	}
+	else // Compute
+	{
+		m_CommandList.ptr->SetComputeRootConstantBufferView(rootParamterIndex, resource.buffer.ptr->GetGPUVirtualAddress() + resource.buffer.offset + resource.offset);
+	}
+
 }
 
 void DrawCommandList::SetReadOnlyResource(uint32_t index, ReadOnlyResource* resources, uint32_t num)

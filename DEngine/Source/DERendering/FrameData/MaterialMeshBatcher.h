@@ -29,15 +29,25 @@ public:
 
 	void Reset()
 	{
-		for (uint32_t i = 0; i < (uint32_t)Flag::Count; i++)
+		for (auto& meshes : m_meshes)
 		{
-			m_meshes[i].clear();
+			meshes.clear();
 		}
 	}
 
 	const Vector<uint32_t>& Get(Flag flag) const
 	{
 		return m_meshes[(uint32_t)flag];
+	}
+
+	uint32_t GetTotalNum() const
+	{
+		uint32_t total = 0;
+		for (const auto& meshes : m_meshes)
+		{
+			total += static_cast<uint32_t>(meshes.size());
+		}
+		return total;
 	}
 
 private:

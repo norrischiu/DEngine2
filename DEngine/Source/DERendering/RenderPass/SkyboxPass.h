@@ -1,38 +1,37 @@
 #pragma once
 
-#include <DERendering/DERendering.h>
-#include <DERendering/Device/RenderDevice.h>
+// Engine
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/DataType/GraphicsResourceType.h>
 
 namespace DE
 {
 
+class RenderDevice;
 class DrawCommandList;
 class FrameData;
-class Texture;
 
 class SkyboxPass
 {
+public:
 	struct Data final
 	{
 		Texture cubemap;
-
-		ConstantBufferView cbv;
-		GraphicsPipelineState pso;
-		RootSignature rootSignature;
 		Texture depth;
-
-		uint32_t backBufferIndex = 0; // temp
-		RenderDevice* pDevice;
 	};
 
-public:
 	SkyboxPass() = default;
 
-	void Setup(RenderDevice* renderDevice, const Texture& depth, const Texture& equirectangularMap);
+	void Setup(RenderDevice* renderDevice, const Data& data);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
 private:
-	Data data;
+	Data m_data;
+	RenderDevice* m_pDevice;
+
+	uint32_t m_backBufferIndex = 0; // temp
+	GraphicsPipelineState m_pso;
+	RootSignature m_rootSignature;
 };
 
 } // namespace DE

@@ -85,8 +85,6 @@ struct ConstantBufferView
 	}
 
 	Buffer buffer;
-	D3D12_CONSTANT_BUFFER_VIEW_DESC desc;
-	D3D12_CPU_DESCRIPTOR_HANDLE descriptor;
 };
 
 struct RenderTargetView final

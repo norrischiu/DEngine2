@@ -39,7 +39,7 @@ public:
 	void SetVertexBuffers(VertexBuffer* buffers, uint32_t num);
 	void SetIndexBuffer(const IndexBuffer& buffer);
 
-	void SetConstant(uint32_t index, const ConstantBufferView& cbv, size_t offset = 0);
+	void SetConstantResource(uint32_t index, const ConstantResource& resource);
 	void SetReadOnlyResource(uint32_t index, ReadOnlyResource* resources, uint32_t num);
 	void SetReadWriteResource(uint32_t index, ReadWriteResource* resources, uint32_t num);
 	void SetRenderTargetDepth(RenderTargetView::Desc* renderTarget, uint32_t num, Texture* depth, uint32_t flag = 0, float* clearColor = nullptr, float clearDepth = 0.0f);

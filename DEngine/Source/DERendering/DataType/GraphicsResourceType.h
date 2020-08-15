@@ -123,22 +123,33 @@ public:
 		ptr->Unmap(0, &range);
 	}
 
+	void* GetMappedPtr(size_t offset = 0)
+	{
+		if (!mappedPtr)
+		{
+			Map();
+		}
+		return (void*) (reinterpret_cast<uintptr_t>(mappedPtr) + this->offset + offset);
+	}
+
+private:
 	void* Map(const size_t size = 0)
 	{
-		void* address = nullptr;
 		D3D12_RANGE range{ 0, size };
-		ptr->Map(0, &range, &address);
-		return address;
+		ptr->Map(0, &range, &mappedPtr);
+		return mappedPtr;
 	}
 
 	void Unmap(const size_t size = 0)
 	{
 		D3D12_RANGE range{ 0, size };
 		ptr->Unmap(0, &range);
+		mappedPtr = nullptr;
 	}
 
+public:
 	ComPtr<ID3D12Resource> ptr;
-	void* mappedPtr;
+	void* mappedPtr = nullptr;
 	D3D12_RESOURCE_DESC m_Desc;
 	uint32_t offset = 0;
 };
@@ -423,6 +434,24 @@ struct ReadWriteResource final
 	auto& Mip(uint32_t mip)
 	{
 		this->mip = mip;
+		return *this;
+	}
+};
+
+struct ConstantResource final
+{
+	Buffer buffer;
+	uint32_t offset = 0;
+
+	auto& Buffer(const Buffer& buffer)
+	{
+		this->buffer = buffer;
+		return *this;
+	}
+
+	auto& Offset(const uint32_t offset)
+	{
+		this->offset = offset;
 		return *this;
 	}
 };

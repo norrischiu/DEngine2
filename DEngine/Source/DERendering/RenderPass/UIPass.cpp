@@ -1,16 +1,15 @@
-#include <DERendering/DERendering.h>
 #include <DERendering/RenderPass/UIPass.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/Device/CopyCommandList.h>
+#include <DERendering/Device/RenderHelper.h>
 #include <DERendering/FrameData/FrameData.h>
 #include <DERendering/Imgui/imgui.h>
 #include <DECore/FileSystem/FileLoader.h>
-#include <DECore/Job/JobScheduler.h>
 
 namespace DE
 {
 
-void UIPass::Setup(RenderDevice* renderDevice)
+void UIPass::Setup(RenderDevice* renderDevice, const Data& data)
 {
 	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\UI.vs.cso");
 	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\UI.ps.cso");
@@ -20,14 +19,14 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		ReadOnlyResourceDefinition readOnly = { 0, 1, D3D12_SHADER_VISIBILITY_PIXEL };
 		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER, 0 };
 
-		data.rootSignature.Add(&constant, 1);
-		data.rootSignature.Add(&readOnly, 1);
-		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
+		m_rootSignature.Add(&constant, 1);
+		m_rootSignature.Add(&readOnly, 1);
+		m_rootSignature.Add(&sampler, 1);
+		m_rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = data.rootSignature.ptr;
+		desc.pRootSignature = m_rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
 		auto vsBlob = vs.WaitGet();
 		VS.pShaderBytecode = vsBlob.data();
@@ -80,12 +79,11 @@ void UIPass::Setup(RenderDevice* renderDevice)
         depthStencilDesc.BackFace = depthStencilDesc.FrontFace;		
 		desc.DepthStencilState = depthStencilDesc;
 
-		data.pso.Init(renderDevice->m_Device, desc);
+		m_pso.Init(renderDevice->m_Device, desc);
 	}
 	{
-		data.vertexBuffer.Init(renderDevice->m_Device, sizeof(ImDrawVert), 1024 * 1024);
-		data.indexBuffer.Init(renderDevice->m_Device, sizeof(ImDrawIdx), 1024 * 1024);
-		data.cbv.Init(renderDevice->m_Device, 256);
+		m_vertexBuffer.Init(renderDevice->m_Device, sizeof(ImDrawVert), 1024 * 1024);
+		m_indexBuffer.Init(renderDevice->m_Device, sizeof(ImDrawIdx), 1024 * 1024);
 	}
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -94,7 +92,7 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		int width, height;
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-		data.font.Init(renderDevice->m_Device, width, height, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+		m_font.Init(renderDevice->m_Device, width, height, 1, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
 		CopyCommandList commandList(renderDevice);
 		commandList.Start();
 		UINT uploadPitch = (width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
@@ -104,14 +102,15 @@ void UIPass::Setup(RenderDevice* renderDevice)
 		desc.height = height;
 		desc.rowPitch = uploadPitch;
 		desc.pitch = 1;
-		commandList.UploadTexture(pixels, desc, DXGI_FORMAT_R8G8B8A8_UNORM, data.font);
+		commandList.UploadTexture(pixels, desc, DXGI_FORMAT_R8G8B8A8_UNORM, m_font);
 
 		renderDevice->Submit(&commandList, 1);
 		renderDevice->Execute();
 		renderDevice->WaitForIdle();
 	}
 
-	data.pDevice = renderDevice;
+	m_data = data;
+	m_pDevice = renderDevice;
 }
 
 void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
@@ -130,12 +129,12 @@ void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 
 	commandList.SetViewportAndScissorRect(0.0f, 0.0f, imguiData->DisplaySize.x, imguiData->DisplaySize.y, 0.0f, 1.0f);
 
-	struct CBuffer
+	struct PerView
 	{
 		Matrix4 projection;
 	};
-	CBuffer transforms;
-	// transforms.projection = Matrix4::OrthographicProjection(imguiData->DisplaySize.x, -imguiData->DisplaySize.y, 0, 1);
+	auto perViewConstants = RenderHelper::AllocateConstant<PerView>(m_pDevice, 1);
+
 	float L = imguiData->DisplayPos.x;
 	float R = imguiData->DisplayPos.x + imguiData->DisplaySize.x;
 	float T = imguiData->DisplayPos.y;
@@ -147,26 +146,24 @@ void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 		{ 0.0f,         0.0f,           0.5f,       0.0f },
 		{ (R+L)/(L-R),  (T+B)/(B-T),    0.5f,       1.0f },
 	};
-	memcpy(&transforms.projection, mvp, sizeof(mvp));
+	memcpy(&perViewConstants->projection, mvp, sizeof(mvp));
 
-	data.cbv.buffer.Update(&transforms, sizeof(transforms));
-
-	RenderTargetView::Desc rtv{ data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0 };
+	RenderTargetView::Desc rtv{ m_pDevice->GetBackBuffer(m_backBufferIndex), 0, 0 };
 	commandList.SetRenderTargetDepth(&rtv, 1, nullptr);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList.SetSignature(&data.rootSignature);
-	commandList.SetPipeline(data.pso);
+	commandList.SetSignature(&m_rootSignature);
+	commandList.SetPipeline(m_pso);
 
-	commandList.SetVertexBuffers(&data.vertexBuffer, 1);
-	commandList.SetIndexBuffer(data.indexBuffer);
-	commandList.SetConstant(0, data.cbv);
-	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.font).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D), 1);
+	commandList.SetVertexBuffers(&m_vertexBuffer, 1);
+	commandList.SetIndexBuffer(m_indexBuffer);
+	commandList.SetConstantResource(0, perViewConstants.GetCurrentResource());
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(m_font).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D), 1);
 
 	// Upload vertex/index data into a single contiguous GPU buffer
-	void* vtx_resource = data.vertexBuffer.Map();
-	void* idx_resource = data.indexBuffer.Map();
+	void* vtx_resource = m_vertexBuffer.GetMappedPtr();
+	void* idx_resource = m_indexBuffer.GetMappedPtr();
 
 	ImDrawVert* vtx_dst = (ImDrawVert*)vtx_resource;
 	ImDrawIdx* idx_dst = (ImDrawIdx*)idx_resource;
@@ -178,8 +175,6 @@ void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 		vtx_dst += cmd_list->VtxBuffer.Size;
 		idx_dst += cmd_list->IdxBuffer.Size;
 	}
-	data.vertexBuffer.Unmap();
-	data.indexBuffer.Unmap();
 	
 	int global_vtx_offset = 0;
 	int global_idx_offset = 0;
@@ -197,9 +192,9 @@ void UIPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 		global_vtx_offset += cmd_list->VtxBuffer.Size;
 	}
 
-	commandList.ResourceBarrier(*data.pDevice->GetBackBuffer(data.backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	commandList.ResourceBarrier(*m_pDevice->GetBackBuffer(m_backBufferIndex), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-	data.backBufferIndex = 1 - data.backBufferIndex;
+	m_backBufferIndex = 1 - m_backBufferIndex;
 }
 
 } // namespace DE

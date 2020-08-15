@@ -1,17 +1,16 @@
-#include <DERendering/DERendering.h>
 #include <DERendering/Device/RenderDevice.h>
 #include <DERendering/DataType/GraphicsDataType.h>
 #include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
 #include <DERendering/Device/DrawCommandList.h>
+#include <DERendering/Device/RenderHelper.h>
 #include <DERendering/FrameData/FrameData.h>
 #include <DERendering/RenderConstant.h>
 #include <DECore/FileSystem/FileLoader.h>
-#include <DECore/Job/JobScheduler.h>
 
 namespace DE
 {
 
-bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture &cubemap, Texture &prefilteredEnvMap, Texture &LUT)
+bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Data& data)
 {
 	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionAsDirection.vs.cso");
 	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\PrefilterEnvironmentMap.ps.cso");
@@ -25,14 +24,14 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 		ReadOnlyResourceDefinition readOnly = {0, 1, D3D12_SHADER_VISIBILITY_PIXEL};
 		SamplerDefinition sampler = {0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER};
 
-		data.rootSignature.Add(constants, 2);
-		data.rootSignature.Add(&readOnly, 1);
-		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
+		m_rootSignature.Add(constants, 2);
+		m_rootSignature.Add(&readOnly, 1);
+		m_rootSignature.Add(&sampler, 1);
+		m_rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = data.rootSignature.ptr;
+		desc.pRootSignature = m_rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
 		auto vsBlob = vs.WaitGet();
 		VS.pShaderBytecode = vsBlob.data();
@@ -55,7 +54,7 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 		desc.RasterizerState = rasterizerDesc;
 		desc.NumRenderTargets = 1;
-		desc.RTVFormats[0] = prefilteredEnvMap.m_Desc.Format;
+		desc.RTVFormats[0] = data.prefilteredEnvMap.m_Desc.Format;
 		DXGI_SAMPLE_DESC sampleDesc = {};
 		sampleDesc.Count = 1;
 		desc.SampleMask = 0xffffff;
@@ -66,10 +65,10 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
 		desc.DepthStencilState = depthStencilDesc;
 
-		data.pso.Init(renderDevice->m_Device, desc);
+		m_pso.Init(renderDevice->m_Device, desc);
 
 		{
-			desc.RTVFormats[0] = LUT.m_Desc.Format;
+			desc.RTVFormats[0] = data.LUT.m_Desc.Format;
 
 			D3D12_SHADER_BYTECODE VS;
 			auto vsBlob = fullscreenVs.WaitGet();
@@ -86,109 +85,97 @@ bool PrecomputeSpecularIBLPass::Setup(RenderDevice *renderDevice, const Texture 
 			PS.pShaderBytecode = psBlob.data();
 			PS.BytecodeLength = psBlob.size();
 			desc.PS = PS;
-			data.convolutePso.Init(renderDevice->m_Device, desc);
+			m_convolutePso.Init(renderDevice->m_Device, desc);
 		}
 	}
 	{
-		data.cubeVertices.Init(renderDevice->m_Device, sizeof(float3), sizeof(RenderConstant::CubeVertices));
-		data.cubeVertices.Update(RenderConstant::CubeVertices, sizeof(RenderConstant::CubeVertices));
-	}
-	{
-		data.src = cubemap;
-		data.dst = prefilteredEnvMap;
-		data.LUT = LUT;
-	}
-	{
-		Matrix4 perspective = Matrix4::PerspectiveProjection(PI / 2.0f, 1.0f, 1.0f, 10.0f);
-		Matrix4 views[6] = {
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitX, Vector3::UnitY),
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitX, Vector3::UnitY),
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitY, Vector3::NegativeUnitZ),
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitY, Vector3::UnitZ),
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitZ, Vector3::UnitY),
-			Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitZ, Vector3::UnitY),
-		};
-
-		struct
-		{
-			Matrix4 transform;
-		} cbuf;
-		for (uint32_t i = 0; i < 6; ++i)
-		{
-			cbuf.transform = views[i] * perspective;
-			data.cbvs[i].Init(renderDevice->m_Device, sizeof(cbuf));
-			data.cbvs[i].buffer.Update(&cbuf, sizeof(cbuf));
-		}
-	}
-	{
-		struct
-		{
-			float2 resolution;
-			float roughness;
-		} cbuf;
-		for (uint32_t i = 0; i < 5; ++i)
-		{
-			data.prefilterData[i].Init(renderDevice->m_Device, sizeof(cbuf));
-			cbuf.roughness = (float)i / data.numRoughness;
-			cbuf.resolution = float2{ static_cast<float>(data.dst.m_Desc.Width), static_cast<float>(data.dst.m_Desc.Height) };
-			data.prefilterData[i].buffer.Update(&cbuf, sizeof(cbuf));
-		}
-	}
-	{
-		struct CBuffer
-		{
-			float2 size;
-		} cbuf;
-		cbuf.size = float2{512, 512};
-		data.LUTsize.Init(renderDevice->m_Device, sizeof(CBuffer));
-		data.LUTsize.buffer.Update(&cbuf, sizeof(cbuf));
+		m_cubeVertices.Init(renderDevice->m_Device, sizeof(float3), sizeof(RenderConstant::CubeVertices));
+		m_cubeVertices.Update(RenderConstant::CubeVertices, sizeof(RenderConstant::CubeVertices));
 	}
 
-	data.pDevice = renderDevice;
+	m_data = data;
+	m_pDevice = renderDevice;
 
 	return true;
 }
 
 void PrecomputeSpecularIBLPass::Execute(DrawCommandList &commandList, const FrameData &frameData)
 {
+	// constants
+	Matrix4 perspective = Matrix4::PerspectiveProjection(PI / 2.0f, 1.0f, 1.0f, 10.0f);
+	Matrix4 views[6] = {
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitX, Vector3::UnitY),
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitX, Vector3::UnitY),
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitY, Vector3::NegativeUnitZ),
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitY, Vector3::UnitZ),
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::UnitZ, Vector3::UnitY),
+		Matrix4::LookAtMatrix(Vector3::Zero, Vector3::NegativeUnitZ, Vector3::UnitY),
+	};
+	struct PerFace
+	{
+		Matrix4 transform;
+	};
+	struct PerRoughness
+	{
+		float2 resolution;
+		float roughness;
+	};
+	struct LUTSize
+	{
+		float2 size;
+	};
+	auto perFaceConstants = RenderHelper::AllocateConstant<PerFace>(m_pDevice, 6);
+	auto perRougnhessConstants = RenderHelper::AllocateConstant<PerRoughness>(m_pDevice, 6);
+	auto LUTSizeConstant = RenderHelper::AllocateConstant<LUTSize>(m_pDevice, 1);
+
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// convonlute prefilter environmental map
-	commandList.SetSignature(&data.rootSignature);
-	commandList.SetPipeline(data.pso);
-	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.src).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
-	commandList.SetVertexBuffers(&data.cubeVertices, 1);
+	commandList.SetSignature(&m_rootSignature);
+	commandList.SetPipeline(m_pso);
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(m_data.cubemap).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
+	commandList.SetVertexBuffers(&m_cubeVertices, 1);
 
-	for (uint32_t i = 0; i < data.numRoughness; ++i)
+	const uint32_t dstWidth = m_data.prefilteredEnvMap.m_Desc.Width;
+	const uint32_t dstHeight = m_data.prefilteredEnvMap.m_Desc.Height;
+	for (uint32_t i = 0; i < m_data.numRoughness; ++i)
 	{
-		commandList.SetConstant(1, data.prefilterData[i]);
+		perRougnhessConstants->roughness = (float)i / m_data.numRoughness;
+		perRougnhessConstants->resolution = float2{ static_cast<float>(dstWidth), static_cast<float>(dstHeight) };
+		commandList.SetConstantResource(1, perRougnhessConstants.GetCurrentResource());
+		++perRougnhessConstants;
 
-		uint32_t width = data.dst.m_Desc.Width >> i;
-		uint32_t height = data.dst.m_Desc.Height >> i;
+		uint32_t width = dstWidth >> i;
+		uint32_t height = dstHeight >> i;
 		commandList.SetViewportAndScissorRect(0, 0, width, height, 1.0f, 10.0f);
 
 		for (uint32_t j = 0; j < 6; ++j)
 		{
-			commandList.SetConstant(0, data.cbvs[j]);
+			perFaceConstants->transform = views[j] * perspective;
+			commandList.SetConstantResource(0, perFaceConstants.GetCurrentResource());
+			++perFaceConstants;
 
-			RenderTargetView::Desc rtv{&data.dst, i, j};
+			RenderTargetView::Desc rtv{&m_data.prefilteredEnvMap, i, j};
 			commandList.SetRenderTargetDepth(&rtv, 1, nullptr);
 			commandList.DrawInstanced(36, 1, 0, 0);
 		}
+		perFaceConstants.Reset();
 	}
 
-	commandList.ResourceBarrier(data.dst, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList.ResourceBarrier(m_data.prefilteredEnvMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	// convonlute BRDF integration map
-	commandList.SetViewportAndScissorRect(0, 0, data.LUT.m_Desc.Width, data.LUT.m_Desc.Height, 1.0f, 10.0f);
-	commandList.SetPipeline(data.convolutePso);
-	commandList.SetConstant(1, data.LUTsize);
+	commandList.SetViewportAndScissorRect(0, 0, m_data.LUT.m_Desc.Width, m_data.LUT.m_Desc.Height, 1.0f, 10.0f);
+	commandList.SetPipeline(m_convolutePso);
 
-	RenderTargetView::Desc rtv{&data.LUT, 0, 0};
+	LUTSizeConstant->size = float2{ 512, 512 };
+	commandList.SetConstantResource(1, LUTSizeConstant.GetCurrentResource());
+
+	RenderTargetView::Desc rtv{&m_data.LUT, 0, 0};
 	commandList.SetRenderTargetDepth(&rtv, 1, nullptr);
 	commandList.DrawInstanced(3, 1, 0, 0);
 
-	commandList.ResourceBarrier(data.LUT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList.ResourceBarrier(m_data.LUT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 } // namespace DE

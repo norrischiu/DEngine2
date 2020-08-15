@@ -1,12 +1,13 @@
 #pragma once
 
 // Engine
-#include <DERendering/Device/RenderDevice.h>
-#include <DECore/Math/simdmath.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/DataType/GraphicsResourceType.h>
 
 namespace DE
 {
 
+class RenderDevice;
 class DrawCommandList;
 class FrameData;
 
@@ -38,9 +39,6 @@ private:
 	GraphicsPipelineState m_noNormalMapPso;
 	GraphicsPipelineState m_albedoOnlyPso;
 	RootSignature m_rootSignature;
-	ConstantBufferView m_vsCbv;
-	ConstantBufferView m_psCbv;
-	ConstantBufferView m_materialCbv;
 };
 
 } // namespace DE

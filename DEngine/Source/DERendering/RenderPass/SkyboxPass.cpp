@@ -1,14 +1,13 @@
-#include <DERendering/DERendering.h>
 #include <DERendering/RenderPass/SkyboxPass.h>
 #include <DERendering/Device/DrawCommandList.h>
 #include <DERendering/FrameData/FrameData.h>
+#include <DERendering/Device/RenderHelper.h>
 #include <DECore/FileSystem/FileLoader.h>
-#include <DECore/Job/JobScheduler.h>
 
 namespace DE
 {
 
-void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const Texture& equirectangularMap)
+void SkyboxPass::Setup(RenderDevice* renderDevice, const Data& data)
 {
 	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.vs.cso");
 	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\Skybox.ps.cso");
@@ -18,14 +17,14 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 		ReadOnlyResourceDefinition readOnly = { 0, 1, D3D12_SHADER_VISIBILITY_PIXEL };
 		SamplerDefinition sampler = { 0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_WRAP ,D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER };
 
-		data.rootSignature.Add(&constant, 1);
-		data.rootSignature.Add(&readOnly, 1);
-		data.rootSignature.Add(&sampler, 1);
-		data.rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
+		m_rootSignature.Add(&constant, 1);
+		m_rootSignature.Add(&readOnly, 1);
+		m_rootSignature.Add(&sampler, 1);
+		m_rootSignature.Finalize(renderDevice->m_Device, RootSignature::Type::Graphics);
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = data.rootSignature.ptr;
+		desc.pRootSignature = m_rootSignature.ptr;
 		D3D12_SHADER_BYTECODE VS;
 		auto vsBlob = vs.WaitGet();
 		VS.pShaderBytecode = vsBlob.data();
@@ -63,52 +62,43 @@ void SkyboxPass::Setup(RenderDevice* renderDevice, const Texture& depth, const T
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		desc.DepthStencilState = depthStencilDesc;
 
-		data.pso.Init(renderDevice->m_Device, desc);
-	}
-	{
-		data.depth = depth;
-		data.cubemap = equirectangularMap;
-	}
-	{
-		data.cbv.Init(renderDevice->m_Device, 256);
+		m_pso.Init(renderDevice->m_Device, desc);
 	}
 
-	data.pDevice = renderDevice;
+	m_data = data;
+	m_pDevice = renderDevice;
 }
 
 void SkyboxPass::Execute(DrawCommandList& commandList, const FrameData& frameData)
 {
-	struct CBuffer
+	struct PerView
 	{
 		Matrix4 projection;
 		Matrix4 view;
 	};
-	CBuffer transforms;
+	auto perViewConstants = RenderHelper::AllocateConstant<PerView>(m_pDevice, 1);
 	SIMDMatrix4 invProj(frameData.cameraProjection);
 	invProj.Invert();	
-	memcpy(&transforms.projection, &invProj, sizeof(Matrix4));
-	
+	memcpy(&perViewConstants->projection, &invProj, sizeof(Matrix4));
 	SIMDMatrix4 invView(frameData.cameraView);
 	invView.Invert();
-	memcpy(&transforms.view, &invView, sizeof(Matrix4));
-
-	data.cbv.buffer.Update(&transforms, sizeof(transforms));
+	memcpy(&perViewConstants->view, &invView, sizeof(Matrix4));
 
 	commandList.SetViewportAndScissorRect(0, 0, 1024, 768, 0.0f, 1.0f);
 
-	RenderTargetView::Desc rtv{ data.pDevice->GetBackBuffer(data.backBufferIndex), 0, 0 };
-	commandList.SetRenderTargetDepth(&rtv, 1, &data.depth);
+	RenderTargetView::Desc rtv{ m_pDevice->GetBackBuffer(m_backBufferIndex), 0, 0 };
+	commandList.SetRenderTargetDepth(&rtv, 1, &m_data.depth);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList.SetSignature(&data.rootSignature);
-	commandList.SetPipeline(data.pso);
+	commandList.SetSignature(&m_rootSignature);
+	commandList.SetPipeline(m_pso);
 
-	commandList.SetConstant(0, data.cbv);
-	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(data.cubemap).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
+	commandList.SetConstantResource(0, perViewConstants.GetCurrentResource());
+	commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(m_data.cubemap).Dimension(D3D12_SRV_DIMENSION_TEXTURECUBE), 1);
 	commandList.DrawInstanced(3, 1, 0, 0);
 
-	data.backBufferIndex = 1 - data.backBufferIndex;
+	m_backBufferIndex = 1 - m_backBufferIndex;
 }
 
 } // namespace DE

@@ -1,39 +1,38 @@
 #pragma once
 
-#include <DERendering/DERendering.h>
-#include <DERendering/Device/RenderDevice.h>
+#include <DERendering/DataType/GraphicsNativeType.h>
+#include <DERendering/DataType/GraphicsResourceType.h>
 
 namespace DE
 {
 
+class RenderDevice;
 class DrawCommandList;
 class FrameData;
-class Texture;
 
 class UIPass
 {
+public:
 	struct Data final
 	{
-		Texture font;
-
-		VertexBuffer vertexBuffer;
-		IndexBuffer indexBuffer;
-		ConstantBufferView cbv;
-		GraphicsPipelineState pso;
-		RootSignature rootSignature;
-
-		uint32_t backBufferIndex = 0; // temp
-		RenderDevice* pDevice;
 	};
 
-public:
 	UIPass() = default;
 
-	void Setup(RenderDevice* renderDevice);
+	void Setup(RenderDevice* renderDevice, const Data& data);
 	void Execute(DrawCommandList& commandList, const FrameData& frameData);
 
 private:
-	Data data;
+	Data m_data;
+	RenderDevice* m_pDevice;
+
+	Texture m_font;
+	VertexBuffer m_vertexBuffer;
+	IndexBuffer m_indexBuffer;
+	GraphicsPipelineState m_pso;
+	RootSignature m_rootSignature;
+
+	uint32_t m_backBufferIndex = 0; // temp
 };
 
 } // namespace DE
