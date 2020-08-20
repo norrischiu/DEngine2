@@ -12,18 +12,11 @@
 namespace DE
 {
 
-const uint32_t MEMORY_POOL_NUM = 23;		// memory pool configuration: number of pool
 const uint32_t MEMORY_POOL_CONFIG[][2] =	// memory pool configuration: block size and nubmer of block pair
 {
 	// already 16-byte aligned
 	// block size, number of block
-	{ 16,       65536 },
-	{ 32,       4096 },
-	{ 48,       4096 },
 	{ 64,       4096 },
-	{ 80,       2048 },
-	{ 96,       2048 },
-	{ 112,      2048 },
 	{ 128,      2048 },
 	{ 256,      2048 },
 	{ 512,      2048 },
@@ -34,14 +27,12 @@ const uint32_t MEMORY_POOL_CONFIG[][2] =	// memory pool configuration: block siz
 	{ 16384,    512 },
 	{ 32768,    512 },
 	{ 65536,    256 },
-	{ 131072,   32 },
-	{ 262144,   32 },  // low res texture (256 * 256 * 4)
-	{ 524288,   32 }, 
-	{ 1048576,  16 }, // mid res texture (512 * 512 * 4)
-	{ 4194304,  64 }, // high res texture (1024 * 1024 * 4)
-	{ 8388608,	4 },
-	{ 16777216, 4 }  // ultra high res texture (2048 * 2048 * 4)
+	{ 262144,   32 },  // 256 * 256 * 4
+	{ 1048576,  16 }, // 512 * 512 * 4
+	{ 4194304,  64 }, // 1024 * 1024 * 4
+	{ 16777216, 4 }  // 2048 * 2048 * 4
 };
+constexpr uint32_t MEMORY_POOL_NUM = sizeof(MEMORY_POOL_CONFIG) / sizeof(uint32_t) / 2;
 
 class MemoryManager
 {

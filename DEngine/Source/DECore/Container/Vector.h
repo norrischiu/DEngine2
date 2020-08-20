@@ -75,7 +75,10 @@ public:
 	~MyArray()
 	{
 		clear();
-		m_hElements.Free();
+		if (m_iCapacity > 0)
+		{
+			m_hElements.Free();
+		}
 	}
 
 	/** @brief Return the current size
