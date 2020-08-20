@@ -95,6 +95,7 @@ void SampleModel::SetupUI(float dt)
 	ImGui::Begin("Info");
 	ImGui::Text("frame/second: %.4f", 1.0f / dt);
 	ImGui::Text("resize: disabled");
+	ImGui::Text("Hold Mouse Right & WASD to move");
 	ImGui::End();
 
 	auto& scene = m_pRenderer->GetScene();
