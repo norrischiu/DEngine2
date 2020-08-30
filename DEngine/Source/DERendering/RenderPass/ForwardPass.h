@@ -23,6 +23,8 @@ public:
 		Texture LTCInverseMatrixMap;
 		Texture LTCNormMap;
 		Texture filteredAreaLightTexture;
+		Buffer clusterLightInfoList;
+		Buffer lightIndexList;
 	};
 
 	ForwardPass() = default;

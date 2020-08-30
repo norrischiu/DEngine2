@@ -49,10 +49,31 @@ void Renderer::Init(const Desc& desc)
 	texLoader.Load(LTCNormMap, "..\\Assets\\SampleScene\\Textures\\LTCNormMap.tex", DXGI_FORMAT_R16G16B16A16_UNORM);
 	Texture filteredAreaLightTexture;
 	filteredAreaLightTexture.Init(m_RenderDevice.m_Device, 2048, 2048, 1, static_cast<uint32_t>(log2f(2048)) + 1, DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-
-	m_Camera.Init(Vector3(0.0f, 0.0f, -3.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
+	Buffer clusters;
+	const uint32_t numCluster = 1024 * 768 / 64 / 64 * 16;
+	clusters.Init(m_RenderDevice.m_Device, numCluster * sizeof(float4) * 2, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	Buffer clusterLightInfoList;
+	clusterLightInfoList.Init(m_RenderDevice.m_Device, sizeof(uint3) * numCluster, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	Buffer lightIndexList;
+	lightIndexList.Init(m_RenderDevice.m_Device, sizeof(uint32_t) * 1024 * 256, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	Buffer lightIndexListCounter;
+	lightIndexListCounter.Init(m_RenderDevice.m_Device, sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	
 	m_commandList.Init(&m_RenderDevice);
-
+	
+	m_Camera.Init(Vector3(0.0f, 2.0f, -4.0f), Vector3(0.0f, 2.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
+	{
+		ClusterLightPass::Data data;
+		data.resolutionX = desc.windowWidth;
+		data.resolutionY = desc.windowHeight;
+		data.numSlice = 16;
+		data.clusterSize = 64;
+		data.clusters = clusters;
+		data.clusterLightInfoList = clusterLightInfoList;
+		data.lightIndexList = lightIndexList;
+		data.lightIndexListCounter = lightIndexListCounter;
+		m_clusterLightPass.Setup(&m_RenderDevice, data);
+	}
 	{
 		ForwardPass::Data data;
 		data.depth = depth;
@@ -62,6 +83,8 @@ void Renderer::Init(const Desc& desc)
 		data.LTCInverseMatrixMap = LTCInverseMatrixMap;
 		data.LTCNormMap = LTCNormMap;
 		data.filteredAreaLightTexture = filteredAreaLightTexture;
+		data.clusterLightInfoList = clusterLightInfoList;
+		data.lightIndexList = lightIndexList;
 		m_forwardPass.Setup(&m_RenderDevice, data);
 	}
 	{
@@ -122,18 +145,31 @@ void Renderer::Update(float dt)
 		if (light.enable)
 		{
 			m_frameData.pointLights.push_back(light.Index());
+			if (light.debug)
+			{
+				m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Wireframe, Mesh::Get(light.debugMesh));
+			}
 		}
 	});
 	m_scene.ForEach<QuadLight>([&](QuadLight& light) {
 		if (light.enable)
 		{
 			m_frameData.quadLights.push_back(light.Index());
+			m_frameData.batcher.Add(MaterialMeshBatcher::Flag::Unlit, Mesh::Get(light.mesh));
 		}
 	});
-	m_frameData.cameraWVP = m_Camera.GetCameraToScreen();
-	m_frameData.cameraView = m_Camera.GetV();
-	m_frameData.cameraProjection = m_Camera.GetP();
-	m_frameData.cameraPos = m_Camera.GetPosition();
+	m_frameData.camera.zNear = m_Camera.GetZNear();
+	m_frameData.camera.zFar = m_Camera.GetZFar();
+	m_frameData.camera.wvp = m_Camera.GetCameraToScreen();
+	m_frameData.camera.view = m_Camera.GetV();
+	m_frameData.camera.projection = m_Camera.GetP();
+	m_frameData.camera.pos = m_Camera.GetPosition();
+
+	const auto& clusteringPassData = m_clusterLightPass.GetData();
+	m_frameData.clusteringInfo.clusterSize = clusteringPassData.clusterSize;
+	m_frameData.clusteringInfo.numCluster = { clusteringPassData.resolutionX / clusteringPassData.clusterSize, clusteringPassData.resolutionY / clusteringPassData.clusterSize };
+	m_frameData.clusteringInfo.resolution = { clusteringPassData.resolutionX, clusteringPassData.resolutionY };
+	m_frameData.clusteringInfo.numSlice = clusteringPassData.numSlice;
 
 	// Render
 	auto& commandList = m_commandList;
@@ -145,6 +181,7 @@ void Renderer::Update(float dt)
 		m_prefilterAreaLightTexturePass.Execute(commandList, m_frameData);
 		m_bFirstRun = false;
 	}
+	m_clusterLightPass.Execute(commandList, m_frameData);
 	m_forwardPass.Execute(commandList, m_frameData);
 	m_SkyboxPass.Execute(commandList, m_frameData);
 	m_UIPass.Execute(commandList, m_frameData);

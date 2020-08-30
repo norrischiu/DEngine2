@@ -30,6 +30,7 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 				{7, 1, D3D12_SHADER_VISIBILITY_PIXEL}, // brdf integration map
 				{8, 2, D3D12_SHADER_VISIBILITY_PIXEL}, // LTC maps
 				{10, 1, D3D12_SHADER_VISIBILITY_PIXEL}, // quadLight texture
+				{11, 2, D3D12_SHADER_VISIBILITY_PIXEL}, // clustering buffers
 			};
 		SamplerDefinition samplers[] = {
 			{0, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_COMPARISON_FUNC_NEVER},
@@ -120,13 +121,16 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	};
 	struct PerView
 	{
-		Vector4 eyePosWS;
+		Matrix4 viewMatrix;
+		float3 eyePosWS;
+		float pad;
 		uint32_t numPointLights;
 		uint32_t numQuadLights;
-		uint32_t padding[2];
+		float2 pad2;
 		struct
 		{
-			float4 position;
+			float3 position;
+			float falloffRadius;
 			float3 color;
 			float intensity;
 		} pointLights[8];
@@ -135,7 +139,18 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			float4 vertices[4];
 			float3 color;
 			float intensity;
+			float falloffRadius;
+			float3 centerWS;
 		} quadLights[8];
+		struct
+		{
+			float zNear;
+			float zFar;
+			uint32_t clusterSize;
+			uint32_t numSlice;
+			uint2 numCluster;
+			uint2 resolution;
+		} clusterInfo;
 	};
 	auto perViewConstants = RenderHelper::AllocateConstant<PerView>(m_pDevice, 1);
 	auto perObjectConstants = RenderHelper::AllocateConstant<PerObject>(m_pDevice, totalMeshNum);
@@ -143,12 +158,14 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 
 	const uint32_t numPointLights = static_cast<uint32_t>(frameData.pointLights.size());
 	const uint32_t numQuadLights = static_cast<uint32_t>(frameData.quadLights.size());
+	perViewConstants->viewMatrix = frameData.camera.view;
 	perViewConstants->eyePosWS = { frameData.camera.pos.GetX(), frameData.camera.pos.GetY(), frameData.camera.pos.GetZ() };
 	perViewConstants->numPointLights = numPointLights;
 	for (uint32_t i = 0; i < numPointLights; ++i)
 	{
 		const auto& light = PointLight::Get(frameData.pointLights[i]);
-		perViewConstants->pointLights[i].position = float4(light.position, 1.0f);
+		perViewConstants->pointLights[i].position = light.position;
+		perViewConstants->pointLights[i].falloffRadius = light.falloffRadius;
 		perViewConstants->pointLights[i].color = light.color;
 		perViewConstants->pointLights[i].intensity = light.intensity;
 	}	
@@ -167,7 +184,15 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		perViewConstants->quadLights[i].vertices[3] = float4(negX, negY, z, 1.0f);
 		perViewConstants->quadLights[i].color = light.color;
 		perViewConstants->quadLights[i].intensity = light.intensity;
+		perViewConstants->quadLights[i].falloffRadius = light.falloffRadius;
+		perViewConstants->quadLights[i].centerWS = light.position;
 	}
+	perViewConstants->clusterInfo.numSlice = frameData.clusteringInfo.numSlice;
+	perViewConstants->clusterInfo.zNear = frameData.camera.zNear;
+	perViewConstants->clusterInfo.zFar = frameData.camera.zFar;
+	perViewConstants->clusterInfo.resolution = frameData.clusteringInfo.resolution;
+	perViewConstants->clusterInfo.numCluster = frameData.clusteringInfo.numCluster;
+	perViewConstants->clusterInfo.clusterSize = frameData.clusteringInfo.clusterSize;
 
 	commandList.ResourceBarrier(*m_pDevice->GetBackBuffer(m_backBufferIndex), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -196,6 +221,12 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 	};
 	commandList.SetReadOnlyResource(3, LTCMaps, ARRAYSIZE(LTCMaps));
 	commandList.SetReadOnlyResource(4, &ReadOnlyResource().Texture(m_data.filteredAreaLightTexture).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D).UseTextureMipRange(), 1);
+	ReadOnlyResource clusterBuffers[] =
+	{
+		ReadOnlyResource().Buffer(m_data.clusterLightInfoList).Dimension(D3D12_SRV_DIMENSION_BUFFER).Stride(sizeof(uint3)),
+		ReadOnlyResource().Buffer(m_data.lightIndexList).Dimension(D3D12_SRV_DIMENSION_BUFFER).Stride(sizeof(uint32_t)),
+	};
+	commandList.SetReadOnlyResource(5, clusterBuffers, ARRAYSIZE(clusterBuffers));
 
 	{
 		commandList.SetPipeline(m_noNormalMapPso);

@@ -15,13 +15,15 @@ struct VS_OUTPUT
 // assume one view only for now
 cbuffer PER_VIEW : register(b1)
 {
+	matrix viewMatrix;
 	float3 g_eyePosWS;
-	float padding;
+	float pad;
 	uint g_numPointLights;
 	uint g_numQuadLights;
-	float2 padding2;
+	float2 pad2;
 	PointLight g_pointLights[8];
 	QuadLight g_quadLights[8];
+	ClusterInfo g_clusterInfo;
 }
 
 cbuffer PER_MATERIAL : register(b2)
@@ -45,6 +47,9 @@ Texture2D LTCNormMap : register(t9);
 Texture2D AreaLightTexture : register(t10); 
 sampler SurfaceSampler : register(s0);
 sampler MaterialTextureSampler : register(s1);
+
+StructuredBuffer<ClusterLightInfo> clusterLightInfoList : register(t11);
+StructuredBuffer<uint> lightIndexList : register(t12);
 
 float4 main(VS_OUTPUT IN) : SV_TARGET
 {
@@ -78,13 +83,17 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 		g_numQuadLights,
 		g_pointLights,
 		g_quadLights,
+		IN.pos,
 		IN.posWS.xyz,
 		g_eyePosWS,
 		N,
 		albedo,
 		metallic,
 		roughness,
-		ao
+		ao,
+		g_clusterInfo,
+		clusterLightInfoList,
+		lightIndexList
 	);
 
 	color = FilmicToneMapping(color);

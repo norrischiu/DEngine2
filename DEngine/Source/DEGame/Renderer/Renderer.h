@@ -2,6 +2,7 @@
 #include <DEGame/Component/Camera.h>
 #include <DEGame/Collection/Scene.h>
 #include <DERendering/Device/RenderDevice.h>
+#include <DERendering/RenderPass/ClusterLightPass.h>
 #include <DERendering/RenderPass/ForwardPass.h>
 #include <DERendering/RenderPass/PrecomputeDiffuseIBLPass.h>
 #include <DERendering/RenderPass/PrecomputeSpecularIBLPass.h>
@@ -50,6 +51,7 @@ private:
 	Camera m_Camera;
 	Scene m_scene;
 
+	ClusterLightPass m_clusterLightPass;
 	ForwardPass m_forwardPass;
 	PrecomputeDiffuseIBLPass m_precomputeDiffuseIBLPass;
 	PrecomputeSpecularIBLPass m_precomputeSpecularIBLPass;
