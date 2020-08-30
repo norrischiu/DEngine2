@@ -40,6 +40,7 @@ private:
 	GraphicsPipelineState m_pso;
 	GraphicsPipelineState m_noNormalMapPso;
 	GraphicsPipelineState m_albedoOnlyPso;
+	GraphicsPipelineState m_wireframePso;
 	RootSignature m_rootSignature;
 };
 

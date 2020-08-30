@@ -13,6 +13,7 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 {
 	auto vs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.vs.cso");
 	auto ps = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr.ps.cso");
+	auto positionOnlyVs = FileLoader::LoadAsync("..\\Assets\\Shaders\\PositionOnly.vs.cso");
 	auto noNormalMapPs = FileLoader::LoadAsync("..\\Assets\\Shaders\\Pbr_NoNormalMap.ps.cso");
 	auto albedoOnlyPs = FileLoader::LoadAsync("..\\Assets\\Shaders\\AlbedoOnly.ps.cso");
 
@@ -103,6 +104,12 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 			PS.BytecodeLength = blob.size();
 			desc.PS = PS;
 			m_albedoOnlyPso.Init(renderDevice->m_Device, desc);
+
+			D3D12_RASTERIZER_DESC rasterizerDesc = {};
+			rasterizerDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
+			rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+			desc.RasterizerState = rasterizerDesc;
+			m_wireframePso.Init(renderDevice->m_Device, desc);			
 		}
 	}
 
@@ -323,6 +330,29 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 
 			VertexBuffer vertexBuffers[] = { mesh.m_Vertices, mesh.m_Normals, mesh.m_Tangents, mesh.m_TexCoords };
 			commandList.SetVertexBuffers(vertexBuffers, ARRAYSIZE(vertexBuffers));
+			commandList.SetIndexBuffer(mesh.m_Indices);
+			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
+		}
+	}
+	{
+		commandList.SetPipeline(m_wireframePso);
+		const auto &meshes = frameData.batcher.Get(MaterialMeshBatcher::Flag::Wireframe);
+		for (auto &i : meshes)
+		{
+			const Mesh &mesh = Mesh::Get(i);
+
+			perObjectConstants->world = Matrix4::Identity; // TODO:
+			perObjectConstants->wvp = frameData.camera.wvp;
+			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
+			++perObjectConstants;
+
+			perMaterialConstants->params[0] = float4(float3{ 1.0f, 0.0f, 0.0f }, 0.0f);
+			commandList.SetConstantResource(2, perMaterialConstants.GetCurrentResource());
+			++perMaterialConstants;
+
+			commandList.SetReadOnlyResource(0, &ReadOnlyResource().Texture(Texture::WHITE).Dimension(D3D12_SRV_DIMENSION_TEXTURE2D), 1);
+
+			commandList.SetVertexBuffers(&mesh.m_Vertices, 1);
 			commandList.SetIndexBuffer(mesh.m_Indices);
 			commandList.DrawIndexedInstanced(mesh.m_iNumIndices, 1, 0, 0, 0);
 		}

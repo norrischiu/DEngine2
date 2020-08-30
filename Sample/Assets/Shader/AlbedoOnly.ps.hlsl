@@ -14,9 +14,7 @@ struct VS_OUTPUT
 cbuffer PER_MATERIAL : register(b2)
 {
 	float3 g_albedo;
-	float g_metallic;
-	float g_roughness;
-	float g_ao;
+	float pad;
 }
 
 Texture2D<float3> AlbedoTex : register(t0);

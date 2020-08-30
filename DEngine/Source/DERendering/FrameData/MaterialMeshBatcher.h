@@ -14,6 +14,7 @@ public:
 	enum class Flag : uint8_t
 	{
 		None = 0,
+		Wireframe,
 		NoNormalMap,
 		Unlit,
 		Textured,
