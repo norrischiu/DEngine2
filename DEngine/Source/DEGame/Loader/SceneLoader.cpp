@@ -110,6 +110,8 @@ void LoadToMeshes(void *data)
 		uint32_t size = num * sizeof(float3);
 		mesh.m_Vertices.Init(pData->pDevice->m_Device, sizeof(float3), size);
 		mesh.m_Vertices.Update(vertices.data(), vertices.size() * sizeof(float3));
+
+		mesh.m_iNumVertices = vertices.size();
 	}
 
 	// normals

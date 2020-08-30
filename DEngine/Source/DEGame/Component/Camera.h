@@ -24,6 +24,9 @@ public:
 		{
 			m_vRotation.SetX(-Vector3::AngleBetween(Vector3::UnitZ, vLookAt - vPos));
 		}
+
+		m_fZNear = fZNear;
+		m_fZFar = fZFar;
 	}
 
 	void ParseInput(float dt)
@@ -101,6 +104,17 @@ public:
 		return m_mLocalTransform.GetPosition();
 	}
 
+	float GetZNear() const
+	{
+		return m_fZNear;
+	}
+
+	float GetZFar() const
+	{
+		return m_fZFar;
+	}
+
+
 public:
 	float yawSpeed = 0.25f;
 	float pitchSpeed = 0.25f;
@@ -114,6 +128,9 @@ private:
 
 	Matrix4 m_mPerspective;
 	Matrix4 m_mView;
+
+	float m_fZNear;
+	float m_fZFar;
 };
 
 }; // namespace DE

@@ -45,6 +45,11 @@ struct float4 final
 	}
 };
 
+struct uint2 final
+{
+	uint32_t x, y;
+};
+
 struct uint3 final
 {
 	uint32_t x, y, z;
@@ -91,6 +96,7 @@ public:
 	IndexBuffer m_Indices;
 
 	uint32_t m_iNumIndices;
+	uint32_t m_iNumVertices;
 	uint32_t m_MaterialID;
 };
 
