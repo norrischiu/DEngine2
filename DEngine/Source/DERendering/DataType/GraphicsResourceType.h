@@ -80,7 +80,7 @@ public:
 	Buffer& operator=(Buffer&& other) = default;
 	~Buffer() = default;
 
-	void Init(const GraphicsDevice& device, std::size_t size, D3D12_HEAP_TYPE heapType)
+	void Init(const GraphicsDevice& device, std::size_t size, D3D12_HEAP_TYPE heapType = D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATES initState = D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE)
 	{
 		D3D12_HEAP_PROPERTIES heapProp = {};
 		heapProp.Type = heapType;
@@ -99,13 +99,14 @@ public:
 		desc.Alignment = 0;
 		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 		desc.SampleDesc.Count = 1;
+		desc.Flags = flags;
 
 		HRESULT hr = {};
 		hr = device.ptr->CreateCommittedResource(
 			&heapProp,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			initState,
 			nullptr,
 			IID_PPV_ARGS(&ptr));
 		assert(hr == S_OK);
@@ -390,6 +391,9 @@ struct ReadOnlyResource final
 	uint32_t mip = 0;
 	uint32_t numMips = 1;
 	bool useTextureMipRange = true;
+	Buffer buffer;
+	uint32_t stride;
+	uint32_t numElement = 0; // will use as full buffer
 
 	auto& Dimension(D3D12_SRV_DIMENSION dimension)
 	{
@@ -413,6 +417,21 @@ struct ReadOnlyResource final
 		useTextureMipRange = true;
 		return *this;
 	}
+	auto& Buffer(const Buffer& buffer)
+	{
+		this->buffer = buffer;
+		return *this;
+	}
+	auto& Stride(uint32_t stride)
+	{
+		this->stride = stride;
+		return *this;
+	}
+	auto& NumElement(uint32_t numElement)
+	{
+		this->numElement = numElement;
+		return *this;
+	}
 };
 
 struct ReadWriteResource final
@@ -420,6 +439,9 @@ struct ReadWriteResource final
 	D3D12_UAV_DIMENSION dimension;
 	Texture texture;
 	uint32_t mip = 0;
+	Buffer buffer;
+	uint32_t stride;
+	uint32_t numElement = 0; // will use as full buffer
 
 	auto& Dimension(D3D12_UAV_DIMENSION dimension)
 	{
@@ -434,6 +456,21 @@ struct ReadWriteResource final
 	auto& Mip(uint32_t mip)
 	{
 		this->mip = mip;
+		return *this;
+	}
+	auto& Buffer(const Buffer& buffer)
+	{
+		this->buffer = buffer;
+		return *this;
+	}
+	auto& Stride(uint32_t stride)
+	{
+		this->stride = stride;
+		return *this;
+	}
+	auto& NumElement(uint32_t numElement)
+	{
+		this->numElement = numElement;
 		return *this;
 	}
 };
