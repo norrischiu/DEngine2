@@ -137,6 +137,7 @@ public:
 			ptr->Release();
 			ptr = nullptr;
 		}
+		CloseHandle(waitable);
 	}
 
 	void Init(const GraphicsInfrastructure& graphicsInfra, const CommandQueue& commandQueue, HWND hWnd, uint32_t width, uint32_t height, uint32_t backBufferCount)
@@ -151,9 +152,12 @@ public:
 		swapChainDesc.OutputWindow = hWnd;
 		swapChainDesc.SampleDesc.Count = 1;
 		swapChainDesc.Windowed = TRUE;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
 		HRESULT hr = {};
-		hr = graphicsInfra.ptr->CreateSwapChain(commandQueue.ptr, &swapChainDesc, &ptr);
+		IDXGISwapChain* swapChainPtr;
+		hr = graphicsInfra.ptr->CreateSwapChain(commandQueue.ptr, &swapChainDesc, &swapChainPtr);
+		ptr = static_cast<IDXGISwapChain2*>(swapChainPtr);
 		assert(hr == S_OK);
 
 		for (uint32_t i = 0; i < backBufferCount; ++i)
@@ -162,11 +166,15 @@ public:
 		}
 
 		this->backBufferCount = backBufferCount;
+
+		ptr->SetMaximumFrameLatency(2);
+		waitable = ptr->GetFrameLatencyWaitableObject();
 	}
 
-	IDXGISwapChain* ptr;
+	IDXGISwapChain2* ptr;
 	ID3D12Resource* backBuffers[4];
 	uint32_t backBufferCount;
+	HANDLE waitable;
 };
 
 class CommandList final
@@ -377,7 +385,7 @@ public:
 		if (ptr->GetCompletedValue() < value)
 		{
 			ptr->SetEventOnCompletion(value, m_Event);
-			WaitForSingleObject(m_Event, INFINITE);
+			auto result = WaitForSingleObject(m_Event, INFINITE);
 		}
 	}
 

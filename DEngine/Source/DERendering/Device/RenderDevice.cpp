@@ -14,15 +14,13 @@ namespace DE
 
 RenderDevice::~RenderDevice()
 {
-	m_FenceValue++;
-
 	CommandList finalCommandList;
 	finalCommandList.Init(m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	ID3D12CommandList* ppCommandLists[] = { finalCommandList.ptr };
 	m_RenderQueue.ptr->ExecuteCommandLists(1, ppCommandLists);
-	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
+	m_RenderQueue.ptr->Signal(m_Fence.ptr, ++m_FenceValue);
 
-	m_Fence.CPUWaitFor(m_FenceValue);
+	WaitForIdle();
 	m_UploadBufferPool.Release();
 }
 
@@ -116,8 +114,8 @@ void RenderDevice::Submit(const DrawCommandList* commandLists, uint32_t num)
 
 void RenderDevice::Execute()
 {
-	m_RenderQueue.ptr->ExecuteCommandLists(m_ppCommandLists.size(), m_ppCommandLists.data());
-	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
+	m_RenderQueue.ptr->ExecuteCommandLists(static_cast<uint32_t>(m_ppCommandLists.size()), m_ppCommandLists.data());
+	m_RenderQueue.ptr->Signal(m_Fence.ptr, ++m_FenceValue);
 
 	m_ppCommandLists.clear();
 
@@ -126,8 +124,11 @@ void RenderDevice::Execute()
 
 void RenderDevice::ExecuteAndPresent()
 {
+	// wait for swapchain
+	auto result = WaitForSingleObject(m_SwapChain.waitable, INFINITE);
+
 	m_RenderQueue.ptr->ExecuteCommandLists(m_ppCommandLists.size(), m_ppCommandLists.data());
-	m_RenderQueue.ptr->Signal(m_Fence.ptr, m_FenceValue);
+	m_RenderQueue.ptr->Signal(m_Fence.ptr, ++m_FenceValue);
 
 	m_ppCommandLists.clear();
 
@@ -139,7 +140,6 @@ void RenderDevice::ExecuteAndPresent()
 void RenderDevice::WaitForIdle()
 {
 	m_Fence.CPUWaitFor(m_FenceValue);
-	m_FenceValue++;
 }
 
 Texture* RenderDevice::GetBackBuffer(uint32_t index)
