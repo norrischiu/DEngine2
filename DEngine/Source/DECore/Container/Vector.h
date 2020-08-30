@@ -54,6 +54,8 @@ public:
 		m_iSize = other.m_iSize;
 		m_iCapacity = other.m_iCapacity;
 		m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
+		other.m_iCapacity = 0;
+		other.m_iSize = 0;
 	}
 
 	/** @brief	Move the other handle from another array, and invalidate it
@@ -68,6 +70,8 @@ public:
 		m_iSize = other.m_iSize;
 		m_iCapacity = other.m_iCapacity;
 		m_pBegin = reinterpret_cast<T*>(m_hElements.Raw());
+		other.m_iCapacity = 0;
+		other.m_iSize = 0;
 		return *this;
 	}
 
