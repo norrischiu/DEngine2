@@ -36,7 +36,7 @@ public:
 	void SetViewportAndScissorRect(float x, float y, float width, float height, float zMin, float zMax);
 	void SetScissorRect(uint32_t left, uint32_t top, uint32_t right, uint32_t bottom);
 
-	void SetVertexBuffers(VertexBuffer* buffers, uint32_t num);
+	void SetVertexBuffers(const VertexBuffer* buffers, uint32_t num);
 	void SetIndexBuffer(const IndexBuffer& buffer);
 
 	void SetConstantResource(uint32_t index, const ConstantResource& resource);
@@ -46,6 +46,7 @@ public:
 
 	void UnorderedAccessBarrier(const Texture& texture);
 	void ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
+	void ResourceBarrier(const Buffer& buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
 	void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset);
 	void DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexOffset, uint32_t instanceOffset);

@@ -52,7 +52,7 @@ void DrawCommandList::SetScissorRect(uint32_t left, uint32_t top, uint32_t right
 	m_CommandList.ptr->RSSetScissorRects(1, &scissorRect);
 }
 
-void DrawCommandList::SetVertexBuffers(VertexBuffer* buffers, uint32_t num)
+void DrawCommandList::SetVertexBuffers(const VertexBuffer* buffers, uint32_t num)
 {
 	Vector<D3D12_VERTEX_BUFFER_VIEW> views(num);
 	for (uint32_t i = 0; i < num; ++i)
@@ -231,6 +231,17 @@ void DrawCommandList::ResourceBarrier(const Texture& texture, D3D12_RESOURCE_STA
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Transition.pResource = texture.ptr.Get();
+	barrier.Transition.StateBefore = before;
+	barrier.Transition.StateAfter = after;
+
+	m_CommandList.ptr->ResourceBarrier(1, &barrier);
+}
+
+void DrawCommandList::ResourceBarrier(const Buffer & buffer, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+{
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Transition.pResource = buffer.ptr.Get();
 	barrier.Transition.StateBefore = before;
 	barrier.Transition.StateAfter = after;
 
