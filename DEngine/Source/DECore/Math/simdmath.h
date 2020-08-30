@@ -352,7 +352,7 @@ public:
 
 	// Inverts the matrix, store the result back to this
 	void Invert();
-	SIMDMatrix4 Inverse();
+	SIMDMatrix4 Inverse() const;
 
 	// Transpose the matrix
 	SIMDMatrix4 Transpose();

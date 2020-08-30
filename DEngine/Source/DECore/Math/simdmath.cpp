@@ -194,7 +194,7 @@ void SIMDMatrix4::Invert()
 	_rows[3] = _mm_mul_ps(det, minor3);
 }
 
-SIMDMatrix4 SIMDMatrix4::Inverse()
+SIMDMatrix4 SIMDMatrix4::Inverse() const
 {
 	SIMDMatrix4 result = *this;
 	result.Invert();
