@@ -56,6 +56,7 @@ float4 main(VS_OUTPUT IN) : SV_TARGET
 	float3 albedo = AlbedoTex.Sample(MaterialTextureSampler, IN.texCoord) * g_albedo;
 	float metallic = MetallicTex.Sample(MaterialTextureSampler, IN.texCoord).b * g_metallic;
 	float roughness = RoughnessTex.Sample(MaterialTextureSampler, IN.texCoord).g * g_roughness;
+	roughness = 0.01 + roughness * (0.99); // remap to avoid being zero
 	float ao = AOTex.Sample(MaterialTextureSampler, IN.texCoord).r * g_ao;
 
 #if NO_NORMAL_MAP
