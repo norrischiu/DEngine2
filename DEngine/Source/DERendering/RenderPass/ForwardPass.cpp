@@ -143,7 +143,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 
 	const uint32_t numPointLights = static_cast<uint32_t>(frameData.pointLights.size());
 	const uint32_t numQuadLights = static_cast<uint32_t>(frameData.quadLights.size());
-	perViewConstants->eyePosWS = frameData.cameraPos;
+	perViewConstants->eyePosWS = { frameData.camera.pos.GetX(), frameData.camera.pos.GetY(), frameData.camera.pos.GetZ() };
 	perViewConstants->numPointLights = numPointLights;
 	for (uint32_t i = 0; i < numPointLights; ++i)
 	{
@@ -216,7 +216,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			commandList.SetReadOnlyResource(0, materialTextures, ARRAYSIZE(materialTextures));
 
 			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.cameraWVP;
+			perObjectConstants->wvp = frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 
@@ -251,7 +251,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			commandList.SetReadOnlyResource(0, materialTextures, ARRAYSIZE(materialTextures));
 
 			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.cameraWVP;
+			perObjectConstants->wvp = frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 
@@ -275,7 +275,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			const auto &material = Material::Get(mesh.m_MaterialID);
 
 			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.cameraWVP;
+			perObjectConstants->wvp = frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 

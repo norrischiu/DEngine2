@@ -77,10 +77,10 @@ void SkyboxPass::Execute(DrawCommandList& commandList, const FrameData& frameDat
 		Matrix4 view;
 	};
 	auto perViewConstants = RenderHelper::AllocateConstant<PerView>(m_pDevice, 1);
-	SIMDMatrix4 invProj(frameData.cameraProjection);
+	SIMDMatrix4 invProj(frameData.camera.projection);
 	invProj.Invert();	
 	memcpy(&perViewConstants->projection, &invProj, sizeof(Matrix4));
-	SIMDMatrix4 invView(frameData.cameraView);
+	SIMDMatrix4 invView(frameData.camera.view);
 	invView.Invert();
 	memcpy(&perViewConstants->view, &invView, sizeof(Matrix4));
 

@@ -2,6 +2,7 @@
 
 #include <DERendering/DERendering.h>
 #include <DERendering/FrameData/MaterialMeshBatcher.h>
+#include <DERendering/DataType/GraphicsDataType.h>
 #include <DECore/Container/Vector.h>
 #include <DECore/Math/simdmath.h>
 
@@ -19,10 +20,24 @@ public:
 	MaterialMeshBatcher batcher;
 	Vector<uint32_t> pointLights;
 	Vector<uint32_t> quadLights;
-	Vector3 cameraPos;
-	Matrix4 cameraView;
-	Matrix4 cameraProjection;
-	Matrix4 cameraWVP;
+
+	struct
+	{
+		Vector3 pos;
+		Matrix4 view;
+		Matrix4 projection;
+		Matrix4 wvp;
+		float zNear;
+		float zFar;
+	} camera;
+
+	struct
+	{
+		uint32_t clusterSize;
+		uint32_t numSlice;
+		uint2 numCluster;
+		uint2 resolution;
+	} clusteringInfo;
 };
 
 } // namespace DE
