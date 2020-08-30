@@ -204,6 +204,12 @@ public:
 		_rows[3] = _mm_set_ps1(1.0f);
 		_rows[3] = _mm_insert_ps(_rows[3], _rows[3], 0x07);
 	}
+	static SIMDMatrix4 Scale(float scalar)
+	{
+		SIMDMatrix4 result;
+		result.CreateScale(scalar);
+		return result;
+	}
 
 	inline void CreateScaleX(float scalar)
 	{

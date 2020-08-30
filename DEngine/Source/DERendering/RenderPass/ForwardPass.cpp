@@ -107,7 +107,7 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 
 			D3D12_RASTERIZER_DESC rasterizerDesc = {};
 			rasterizerDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
-			rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+			rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 			desc.RasterizerState = rasterizerDesc;
 			m_wireframePso.Init(renderDevice->m_Device, desc);			
 		}
@@ -253,8 +253,8 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			};
 			commandList.SetReadOnlyResource(0, materialTextures, ARRAYSIZE(materialTextures));
 
-			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.camera.wvp;
+			perObjectConstants->world = Matrix4::Scale(mesh.scale) * Matrix4::Translation(Vector3(mesh.translate.x, mesh.translate.y, mesh.translate.z));
+			perObjectConstants->wvp = perObjectConstants->world * frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 
@@ -288,8 +288,8 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			};
 			commandList.SetReadOnlyResource(0, materialTextures, ARRAYSIZE(materialTextures));
 
-			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.camera.wvp;
+			perObjectConstants->world = Matrix4::Scale(mesh.scale) * Matrix4::Translation(Vector3(mesh.translate.x, mesh.translate.y, mesh.translate.z));
+			perObjectConstants->wvp = perObjectConstants->world * frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 
@@ -312,8 +312,8 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			const Mesh &mesh = Mesh::Get(i);
 			const auto &material = Material::Get(mesh.m_MaterialID);
 
-			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.camera.wvp;
+			perObjectConstants->world = Matrix4::Scale(mesh.scale) * Matrix4::Translation(Vector3(mesh.translate.x, mesh.translate.y, mesh.translate.z));
+			perObjectConstants->wvp = perObjectConstants->world * frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 
@@ -341,8 +341,8 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 		{
 			const Mesh &mesh = Mesh::Get(i);
 
-			perObjectConstants->world = Matrix4::Identity; // TODO:
-			perObjectConstants->wvp = frameData.camera.wvp;
+			perObjectConstants->world = Matrix4::Scale(mesh.scale) * Matrix4::Translation(Vector3(mesh.translate.x, mesh.translate.y, mesh.translate.z));
+			perObjectConstants->wvp = perObjectConstants->world * frameData.camera.wvp;
 			commandList.SetConstantResource(0, perObjectConstants.GetCurrentResource());
 			++perObjectConstants;
 

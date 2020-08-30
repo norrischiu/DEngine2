@@ -98,6 +98,9 @@ public:
 	uint32_t m_iNumIndices;
 	uint32_t m_iNumVertices;
 	uint32_t m_MaterialID;
+
+	float scale = 1.0f;
+	float3 translate;
 };
 
 }
