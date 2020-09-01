@@ -88,8 +88,6 @@ void main(
 		}
 	}
 
-	DeviceMemoryBarrierWithGroupSync();
-
 	uint index;
 	InterlockedAdd(lightIndexListCounter[0], pointLightCount + quadLightCount, index);
 
