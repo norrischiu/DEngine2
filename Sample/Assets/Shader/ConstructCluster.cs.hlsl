@@ -4,13 +4,8 @@
 
 cbuffer ClusteringInfoCBuffer : register(b0)
 {
-	matrix g_perspectiveMatrixInverse;
-	uint g_tileSize;
-	float g_zNear;
-	float g_zFar;
-	uint g_numSlice;
-	uint2 g_resolution;
-	uint2 g_numCluster;
+	float4x4 g_perspectiveMatrixInverse;
+	ClusterInfo g_clusterInfo;
 };
 
 cbuffer PerViewCBuffer : register(b1)
@@ -42,25 +37,27 @@ float3 lineIntersectionToZPlane(float3 A, float3 B, float zDistance) {
 	return A + t * ab;
 }
 
-#define DIM_X 1
-#define DIM_Y 1
-#define DIM_Z 1
-#define DIM_XYZ 1
+#define DIM_X 8
+#define DIM_Y 4
+#define DIM_Z 8
 [numthreads(DIM_X, DIM_Y, DIM_Z)]
-void main(
-	uint3 globalThreadId : SV_DispatchThreadID,
-	uint3 groupId : SV_GroupId,
-	uint localFlattenedId : SV_GroupIndex)
+void main(uint3 globalThreadId : SV_DispatchThreadID)
 {
-	float4 minScreenSpace = float4(globalThreadId.xy * g_tileSize, 0.0f, 1.0f);
-	float4 maxScreenSpace = float4(float2(globalThreadId.x + 1, globalThreadId.y + 1) * g_tileSize, 0.0f, 1.0f);
+	const uint clusterId = GlobalThreadIdToClusterLinearId(globalThreadId, g_clusterInfo);
+	if (clusterId >= g_clusterInfo.numCluster.x * g_clusterInfo.numCluster.y * g_clusterInfo.numSlice)
+	{
+		return;
+	}
 
-	float4 minViewSpace = ScreenSpaceToViewSpace(minScreenSpace, g_resolution);
-	float4 maxViewSpace = ScreenSpaceToViewSpace(maxScreenSpace, g_resolution);
+	float4 minScreenSpace = float4(globalThreadId.xy * g_clusterInfo.clusterSize, 0.0f, 1.0f);
+	float4 maxScreenSpace = float4(float2(globalThreadId.x + 1, globalThreadId.y + 1) * g_clusterInfo.clusterSize, 0.0f, 1.0f);
+
+	float4 minViewSpace = ScreenSpaceToViewSpace(minScreenSpace, g_clusterInfo.resolution);
+	float4 maxViewSpace = ScreenSpaceToViewSpace(maxScreenSpace, g_clusterInfo.resolution);
 
 	// Logarithmical depth distribution (THE DEVIL IS IN THE DETAILSIDTECH 666)
-	float depthNear = g_zNear * pow((g_zFar / g_zNear), globalThreadId.z / (float)g_numSlice);
-	float depthFar = g_zNear * pow((g_zFar / g_zNear), (globalThreadId.z + 1) / (float)g_numSlice);
+	float depthNear = g_clusterInfo.zNear * pow((g_clusterInfo.zFar / g_clusterInfo.zNear), globalThreadId.z / (float)g_clusterInfo.numSlice);
+	float depthFar = g_clusterInfo.zNear * pow((g_clusterInfo.zFar / g_clusterInfo.zNear), (globalThreadId.z + 1) / (float)g_clusterInfo.numSlice);
 
 	// Finding the 4 intersection points made from each point to the cluster near/far plane
 	float3 zero = float3(0.0f, 0.0f, 0.0f);
@@ -72,9 +69,6 @@ void main(
 	float3 minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
 	float3 maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
 
-	const uint clusterId = groupId.x
-		+ groupId.y * g_numCluster.x
-		+ groupId.z * g_numCluster.x * g_numCluster.y;
 	clusterList[clusterId].min = float4(minPointAABB, 0.0f);
 	clusterList[clusterId].max = float4(maxPointAABB, 0.0f);
 }

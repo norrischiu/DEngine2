@@ -372,8 +372,7 @@ float3 PbrShading(
 	float3 Lo = float3(0.0f, 0.0f, 0.0f);
 
 	// cluster
-	const uint clusterLinearId = GetClusterLinearId(screenPos, clusterInfo);
-	const uint3 clusterId = GetClusterId(screenPos, clusterInfo);
+	const uint clusterLinearId = ScreenPosToClusterLinearId(screenPos, clusterInfo);
 	const ClusterLightInfo info = clusterLightInfoList[clusterLinearId];
 
 	uint i = 0;
