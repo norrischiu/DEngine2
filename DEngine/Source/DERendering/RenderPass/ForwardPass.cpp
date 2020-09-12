@@ -83,8 +83,8 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 		desc.BlendState = blendDesc;
 		D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
 		depthStencilDesc.DepthEnable = true;
-		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 		desc.DepthStencilState = depthStencilDesc;
 
 		m_pso.Init(renderDevice->m_Device, desc);
@@ -109,7 +109,12 @@ void ForwardPass::Setup(RenderDevice *renderDevice, const Data& data)
 			rasterizerDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 			rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 			desc.RasterizerState = rasterizerDesc;
-			m_wireframePso.Init(renderDevice->m_Device, desc);			
+			D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+			depthStencilDesc.DepthEnable = true;
+			depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+			depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+			desc.DepthStencilState = depthStencilDesc;
+			m_wireframePso.Init(renderDevice->m_Device, desc);
 		}
 	}
 
@@ -156,7 +161,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 			uint32_t clusterSize;
 			uint32_t numSlice;
 			uint2 numCluster;
-			uint2 resolution;
+			float2 resolution;
 		} clusterInfo;
 	};
 	auto perViewConstants = RenderHelper::AllocateConstant<PerView>(m_pDevice, 1);
@@ -207,7 +212,7 @@ void ForwardPass::Execute(DrawCommandList &commandList, const FrameData &frameDa
 
 	float clearColor[] = {0.5f, 0.5f, 0.5f, 0.1f};
 	RenderTargetView::Desc rtv{ m_pDevice->GetBackBuffer(m_backBufferIndex), 0, 0};
-	commandList.SetRenderTargetDepth(&rtv, 1, &m_data.depth, ClearFlag::Color | ClearFlag::Depth, clearColor, 1.0f);
+	commandList.SetRenderTargetDepth(&rtv, 1, &m_data.depth, ClearFlag::Color, clearColor);
 
 	commandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList.SetSignature(&m_rootSignature);

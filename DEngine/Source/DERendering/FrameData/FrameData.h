@@ -36,7 +36,7 @@ public:
 		uint32_t clusterSize;
 		uint32_t numSlice;
 		uint2 numCluster;
-		uint2 resolution;
+		float2 resolution;
 	} clusteringInfo;
 };
 
