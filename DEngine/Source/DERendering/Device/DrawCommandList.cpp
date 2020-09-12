@@ -9,6 +9,15 @@ uint32_t DrawCommandList::Init(RenderDevice* device)
 {
 	m_CommandList.Init(device->m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	m_pDevice = device;
+
+	D3D12_INDIRECT_ARGUMENT_DESC argDesc = {};
+	argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+	D3D12_COMMAND_SIGNATURE_DESC desc = {};
+	desc.ByteStride = sizeof(uint32_t) * 3;
+	desc.NumArgumentDescs = 1;
+	desc.pArgumentDescs = &argDesc;
+	m_pDevice->m_Device.ptr->CreateCommandSignature(&desc, nullptr, IID_PPV_ARGS(&m_dispatchIndirectCmdSgn));
+
 	return 0;
 }
 
@@ -189,30 +198,44 @@ void DrawCommandList::SetRenderTargetDepth(RenderTargetView::Desc* renderTarget,
 
 void DrawCommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t indexOffset, uint32_t vertexOffset, uint32_t instanceOffset)
 {
-	for (const auto& barrier : m_Barriers) {
-		m_CommandList.ptr->ResourceBarrier(1, &barrier);
+	if (!m_Barriers.empty())
+	{
+		m_CommandList.ptr->ResourceBarrier(m_Barriers.size(), m_Barriers.data());
+		m_Barriers.clear();
 	}
-	m_Barriers.clear();
 
 	m_CommandList.ptr->DrawIndexedInstanced(indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
 }
 
 void DrawCommandList::DrawInstanced(uint32_t vertexCount, uint32_t instanceCount, uint32_t vertexOffset, uint32_t instanceOffset)
 {
-	for (const auto& barrier : m_Barriers) {
-		m_CommandList.ptr->ResourceBarrier(1, &barrier);
+	if (!m_Barriers.empty())
+	{
+		m_CommandList.ptr->ResourceBarrier(m_Barriers.size(), m_Barriers.data());
+		m_Barriers.clear();
 	}
-	m_Barriers.clear();
 
 	m_CommandList.ptr->DrawInstanced(vertexCount, instanceCount, vertexOffset, instanceOffset);
 }
 
+void DrawCommandList::DispatchIndirect(const Buffer & buffer)
+{
+	if (!m_Barriers.empty())
+	{
+		m_CommandList.ptr->ResourceBarrier(m_Barriers.size(), m_Barriers.data());
+		m_Barriers.clear();
+	}
+
+	m_CommandList.ptr->ExecuteIndirect(m_dispatchIndirectCmdSgn.Get(), 1, buffer.ptr.Get(), 0, nullptr, 0);
+}
+
 void DrawCommandList::Dispatch(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
 {
-	for (const auto& barrier : m_Barriers) {
-		m_CommandList.ptr->ResourceBarrier(1, &barrier);
+	if (!m_Barriers.empty())
+	{
+		m_CommandList.ptr->ResourceBarrier(m_Barriers.size(), m_Barriers.data());
+		m_Barriers.clear();
 	}
-	m_Barriers.clear();
 
 	m_CommandList.ptr->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
 }
@@ -222,6 +245,15 @@ void DrawCommandList::UnorderedAccessBarrier(const Texture & texture)
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 	barrier.UAV.pResource = texture.ptr.Get();
+
+	m_CommandList.ptr->ResourceBarrier(1, &barrier);
+}
+
+void DrawCommandList::UnorderedAccessBarrier(const Buffer & buffer)
+{
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	barrier.UAV.pResource = buffer.ptr.Get();
 
 	m_CommandList.ptr->ResourceBarrier(1, &barrier);
 }
