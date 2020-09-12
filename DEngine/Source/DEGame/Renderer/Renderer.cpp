@@ -52,6 +52,8 @@ void Renderer::Init(const Desc& desc)
 	Buffer clusters;
 	const uint32_t numCluster = 1024 * 768 / 64 / 64 * 16;
 	clusters.Init(m_RenderDevice.m_Device, numCluster * sizeof(float4) * 2, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	Buffer clusterVisibilities;
+	clusterVisibilities.Init(m_RenderDevice.m_Device, numCluster * sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	Buffer clusterLightInfoList;
 	clusterLightInfoList.Init(m_RenderDevice.m_Device, sizeof(uint3) * numCluster, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	Buffer lightIndexList;
@@ -62,6 +64,12 @@ void Renderer::Init(const Desc& desc)
 	m_commandList.Init(&m_RenderDevice);
 	
 	m_Camera.Init(Vector3(0.0f, 2.0f, -4.0f), Vector3(0.0f, 2.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
+	{
+		ZPrePass::Data data;
+		data.depth = depth;
+		data.clusterVisibilities = clusterVisibilities;
+		m_zPrePass.Setup(&m_RenderDevice, data);
+	}
 	{
 		ClusterLightPass::Data data;
 		data.resolutionX = desc.windowWidth;
@@ -181,6 +189,7 @@ void Renderer::Update(float dt)
 		m_prefilterAreaLightTexturePass.Execute(commandList, m_frameData);
 		m_bFirstRun = false;
 	}
+	m_zPrePass.Execute(commandList, m_frameData);
 	m_clusterLightPass.Execute(commandList, m_frameData);
 	m_forwardPass.Execute(commandList, m_frameData);
 	m_SkyboxPass.Execute(commandList, m_frameData);
