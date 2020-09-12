@@ -94,6 +94,15 @@ public:
 		return m_iSize;
 	}
 
+	/** @brief Return if the array is empty
+	*
+	*	@return true if empty, false otherwise
+	*/
+	inline bool empty() const
+	{
+		return m_iSize == 0;
+	}
+
 	/** @brief Add an element at the end of this array
 	*
 	*	@param item the item to be added
