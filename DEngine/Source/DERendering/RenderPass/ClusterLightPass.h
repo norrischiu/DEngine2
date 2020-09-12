@@ -24,6 +24,10 @@ public:
 		Buffer lightIndexList;
 		Buffer lightIndexListCounter;
 		Buffer clusterLightInfoList;
+		Texture depth;
+		Buffer visibleClusterIndices;
+		Buffer visibleClusterCount;
+		Buffer clusterVisibilities;
 	};
 
 	ClusterLightPass() = default;
@@ -42,7 +46,12 @@ private:
 
 	ComputePipelineState m_clusterFroxelPso;
 	ComputePipelineState m_lightCullingPso;
+	ComputePipelineState m_filteringPso;
+	ComputePipelineState m_resetCounterPso;
+	ComputePipelineState m_prepareIndirectPso;
 	RootSignature m_rootSignature;
+
+	Buffer m_lightCullingIndirectBuffer;
 };
 
 } // namespace DE

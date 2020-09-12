@@ -60,7 +60,11 @@ void Renderer::Init(const Desc& desc)
 	lightIndexList.Init(m_RenderDevice.m_Device, sizeof(uint32_t) * 1024 * 256, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	Buffer lightIndexListCounter;
 	lightIndexListCounter.Init(m_RenderDevice.m_Device, sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	
+	Buffer visibleClusterIndices;
+	visibleClusterIndices.Init(m_RenderDevice.m_Device, numCluster * sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	Buffer visibleClusterCount;
+	visibleClusterCount.Init(m_RenderDevice.m_Device, sizeof(uint32_t), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
 	m_commandList.Init(&m_RenderDevice);
 	
 	m_Camera.Init(Vector3(0.0f, 2.0f, -4.0f), Vector3(0.0f, 2.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f), PI / 2.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
@@ -80,6 +84,10 @@ void Renderer::Init(const Desc& desc)
 		data.clusterLightInfoList = clusterLightInfoList;
 		data.lightIndexList = lightIndexList;
 		data.lightIndexListCounter = lightIndexListCounter;
+		data.depth = depth;
+		data.visibleClusterIndices = visibleClusterIndices;
+		data.visibleClusterCount = visibleClusterCount;
+		data.clusterVisibilities = clusterVisibilities;
 		m_clusterLightPass.Setup(&m_RenderDevice, data);
 	}
 	{
@@ -176,7 +184,7 @@ void Renderer::Update(float dt)
 	const auto& clusteringPassData = m_clusterLightPass.GetData();
 	m_frameData.clusteringInfo.clusterSize = clusteringPassData.clusterSize;
 	m_frameData.clusteringInfo.numCluster = { clusteringPassData.resolutionX / clusteringPassData.clusterSize, clusteringPassData.resolutionY / clusteringPassData.clusterSize };
-	m_frameData.clusteringInfo.resolution = { clusteringPassData.resolutionX, clusteringPassData.resolutionY };
+	m_frameData.clusteringInfo.resolution = { static_cast<float>(clusteringPassData.resolutionX), static_cast<float>(clusteringPassData.resolutionY) };
 	m_frameData.clusteringInfo.numSlice = clusteringPassData.numSlice;
 
 	// Render

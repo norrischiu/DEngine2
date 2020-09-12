@@ -78,6 +78,10 @@ struct ShaderResourceView
 			}
 			desc.Texture2D.PlaneSlice = 0;
 			desc.Format = resource.texture.ptr == nullptr ? DXGI_FORMAT_R8G8B8A8_UNORM : resource.texture.m_Desc.Format; // allow null descriptor
+			if (desc.Format == DXGI_FORMAT_D32_FLOAT)
+			{
+				desc.Format = DXGI_FORMAT_R32_FLOAT;
+			}
 			rawResource = resource.texture.ptr.Get();
 		}
 		else if (resource.dimension == D3D12_SRV_DIMENSION_BUFFER)
