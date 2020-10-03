@@ -19,3 +19,6 @@ Created for quick engine and graphics features protyping on Windows only. A spir
 Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2017 is required. 
 
 Make sure you have Windows 10 Dev Kit installed and dxc.exe searchable in system path.
+
+## By
+Norris CHIU, Sung Hong
