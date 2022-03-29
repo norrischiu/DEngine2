@@ -1,5 +1,5 @@
 ## This is
-Created for quick engine and graphics features protyping on Windows only. A spiritual successor of my other project DEngine (https://github.com/norrischiu/DEngine). 
+Created for quick engine and graphics features protyping on Windows only.
 
 ## It has
 - PBR render pipeline
@@ -16,9 +16,11 @@ Created for quick engine and graphics features protyping on Windows only. A spir
 ![screenshot](screenshot.png)
 
 ## To run
-Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2017 is required. 
+Use Sample/build.bat to generate solution at Sample/Build/, Visual Studio 2022 is required. 
 
-Make sure you have Windows 10 Dev Kit installed and dxc.exe searchable in system path.
+Make sure you have Windows 10 Dev Kit (10.0.19041.0) installed and dxc.exe searchable in system path.
+
+For other Visual Studio or Windows Dev Kit version, modify the premake lua script.
 
 ## By
 Norris CHIU, Sung Hong
