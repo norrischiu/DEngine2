@@ -7,8 +7,11 @@ workspace "Sample"
 	cppdialect "C++17"
 	location "Build"
 	platforms { "x64" }
-	systemversion "10.0.16299.0"
+	systemversion "10.0.19041.0"
 	
+-- DEngine
+include("../DTools/DExporter/premake5.lua")
+
 -- DEngine
 include("../DEngine/premake5.lua")
 
